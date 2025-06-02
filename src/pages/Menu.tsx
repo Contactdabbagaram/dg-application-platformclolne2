@@ -1,0 +1,192 @@
+
+import { useState, useEffect } from 'react';
+import Navbar from '@/components/Navbar';
+import AssistiveTouch from '@/components/AssistiveTouch';
+import MenuCategories from '@/components/MenuCategories';
+import MenuItemCard from '@/components/MenuItemCard';
+import LocationPicker from '@/components/LocationPicker';
+import { useMenuItems, MenuItem, OutletWithDistance } from '@/hooks/useMenu';
+import { useBusinessSettings } from '@/hooks/useBusinessSettings';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { MapPin, Filter } from 'lucide-react';
+
+const Menu = () => {
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [categoryImage, setCategoryImage] = useState<string>('');
+  const [selectedOutlet, setSelectedOutlet] = useState<OutletWithDistance | null>(null);
+  const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
+
+  const { data: menuItems, isLoading } = useMenuItems(selectedCategory || undefined);
+  const { data: businessSettings } = useBusinessSettings();
+
+  // Check URL params for category selection
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const categoryParam = urlParams.get('category');
+    if (categoryParam) {
+      setSelectedCategory(categoryParam);
+    }
+  }, []);
+
+  const handleCategorySelect = (categoryId: string, imageUrl: string) => {
+    setSelectedCategory(categoryId || null);
+    setCategoryImage(imageUrl);
+    
+    // Update URL without page reload
+    const url = new URL(window.location.href);
+    if (categoryId) {
+      url.searchParams.set('category', categoryId);
+    } else {
+      url.searchParams.delete('category');
+    }
+    window.history.replaceState({}, '', url);
+  };
+
+  const handleAddToCart = (item: MenuItem) => {
+    console.log('Adding to cart:', item);
+    // TODO: Implement cart functionality
+  };
+
+  const handleOutletSelect = (outlet: OutletWithDistance) => {
+    setSelectedOutlet(outlet);
+    setIsLocationSheetOpen(false);
+  };
+
+  // Default category image
+  const defaultImage = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80';
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+      
+      {/* Hero Section with Dynamic Category Image */}
+      <div className="relative h-48 md:h-64 overflow-hidden">
+        <img
+          src={categoryImage || defaultImage}
+          alt="Menu category"
+          className="w-full h-full object-cover transition-all duration-500"
+        />
+        <div className="absolute inset-0 bg-black bg-opacity-40" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center text-white">
+            <h1 className="text-3xl md:text-4xl font-bold mb-2">
+              {selectedCategory ? 'Category Menu' : 'Our Menu'}
+            </h1>
+            <p className="text-lg opacity-90">
+              Delicious homestyle meals delivered fresh
+            </p>
+          </div>
+        </div>
+        
+        {/* Location Button */}
+        <div className="absolute top-4 left-4">
+          <Sheet open={isLocationSheetOpen} onOpenChange={setIsLocationSheetOpen}>
+            <SheetTrigger asChild>
+              <Button variant="secondary" size="sm" className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                {selectedOutlet ? selectedOutlet.name : 'Select Location'}
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-96">
+              <SheetHeader>
+                <SheetTitle>Choose Delivery Location</SheetTitle>
+              </SheetHeader>
+              <div className="mt-6">
+                <LocationPicker 
+                  onOutletSelect={handleOutletSelect}
+                  selectedOutlet={selectedOutlet}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Google Maps API Status */}
+        {businessSettings && !businessSettings.googleMapsApiKey && (
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+              <span className="text-yellow-800 font-medium">
+                Google Maps API not configured
+              </span>
+            </div>
+            <p className="text-yellow-700 text-sm mt-1">
+              Location search will use fallback functionality. Configure Google Maps API in admin settings for better experience.
+            </p>
+          </div>
+        )}
+
+        {/* Menu Categories */}
+        <div className="mb-8">
+          <MenuCategories
+            selectedCategory={selectedCategory}
+            onCategorySelect={handleCategorySelect}
+            restaurantId={selectedOutlet?.restaurant_id}
+          />
+        </div>
+
+        {/* Outlet Info */}
+        {selectedOutlet && (
+          <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-medium text-gray-900">{selectedOutlet.name}</h3>
+                <p className="text-sm text-gray-600">{selectedOutlet.address}</p>
+              </div>
+              <div className="text-right text-sm text-gray-600">
+                <p>🚚 ₹{selectedOutlet.delivery_fee} delivery</p>
+                <p>⏰ {selectedOutlet.duration ? Math.round(selectedOutlet.duration) : '25-30'} mins</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Menu Items Grid */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="bg-white rounded-lg p-4 animate-pulse">
+                <div className="h-48 bg-gray-200 rounded mb-4"></div>
+                <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded mb-4"></div>
+                <div className="flex justify-between items-center">
+                  <div className="h-6 bg-gray-200 rounded w-16"></div>
+                  <div className="h-8 bg-gray-200 rounded w-16"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : menuItems && menuItems.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {menuItems.map((item) => (
+              <MenuItemCard
+                key={item.id}
+                item={item}
+                onAddToCart={handleAddToCart}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="text-gray-400 mb-4">
+              <Filter className="h-16 w-16 mx-auto" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No items found</h3>
+            <p className="text-gray-600">
+              {selectedCategory 
+                ? 'No items available in this category.' 
+                : 'No menu items available at the moment.'}
+            </p>
+          </div>
+        )}
+      </div>
+
+      <AssistiveTouch />
+    </div>
+  );
+};
+
+export default Menu;
