@@ -1,17 +1,27 @@
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import Testimonials from '@/components/Testimonials';
 import Footer from '@/components/Footer';
+import HeroSkeleton from '@/components/skeletons/HeroSkeleton';
 import { useFrontendSettings } from '@/hooks/useFrontendSettings';
 import { useRestaurant } from '@/contexts/RestaurantContext';
+import { usePageTransition } from '@/contexts/PageTransitionContext';
 import { Loader2 } from 'lucide-react';
 
 const Index = () => {
   const { currentRestaurant, loading: restaurantLoading } = useRestaurant();
   const restaurantId = currentRestaurant?.id || '';
   const { settings, loading: settingsLoading } = useFrontendSettings(restaurantId);
+  const { endTransition } = usePageTransition();
+
+  // End transition when component is ready
+  useEffect(() => {
+    if (!restaurantLoading && !settingsLoading) {
+      endTransition();
+    }
+  }, [restaurantLoading, settingsLoading, endTransition]);
 
   // Update document title and meta tags when settings load
   useEffect(() => {
@@ -21,7 +31,6 @@ const Index = () => {
         document.title = settings.site_title;
       }
       
-      // Update meta description
       if (settings.meta_description) {
         const metaDescription = document.querySelector('meta[name="description"]');
         if (metaDescription) {
@@ -29,7 +38,6 @@ const Index = () => {
         }
       }
       
-      // Update meta keywords
       if (settings.meta_keywords) {
         let metaKeywords = document.querySelector('meta[name="keywords"]');
         if (!metaKeywords) {
@@ -40,7 +48,6 @@ const Index = () => {
         metaKeywords.setAttribute('content', settings.meta_keywords);
       }
 
-      // Update favicon if provided
       if (settings.favicon_url) {
         const favicon = document.querySelector('link[rel="icon"]') as HTMLLinkElement;
         if (favicon) {
@@ -48,7 +55,6 @@ const Index = () => {
         }
       }
 
-      // Update CSS custom properties for theming
       if (settings.primary_color || settings.secondary_color || settings.accent_color) {
         const root = document.documentElement;
         if (settings.primary_color) {
@@ -62,7 +68,6 @@ const Index = () => {
         }
       }
 
-      // Apply global font settings
       if (settings.body_font_family) {
         document.body.style.fontFamily = settings.body_font_family;
       }
@@ -71,19 +76,19 @@ const Index = () => {
 
   if (restaurantLoading || settingsLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading...</p>
-        </div>
+      <div className="min-h-screen">
+        <Navbar />
+        <HeroSkeleton />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen animate-fade-in">
       <Navbar />
-      <Hero />
+      <Suspense fallback={<HeroSkeleton />}>
+        <Hero />
+      </Suspense>
       <Testimonials />
       <Footer />
     </div>

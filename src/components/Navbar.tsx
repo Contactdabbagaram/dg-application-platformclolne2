@@ -1,18 +1,18 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Menu, X, ShoppingCart, Phone, MapPin } from 'lucide-react';
 import { useFrontendSettings } from '@/hooks/useFrontendSettings';
 import { useRestaurant } from '@/contexts/RestaurantContext';
-import { useNavigate, Link } from 'react-router-dom';
+import { useSmoothNavigation } from '@/hooks/useSmoothNavigation';
+import { Link } from 'react-router-dom';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { currentRestaurant } = useRestaurant();
   const restaurantId = currentRestaurant?.id || '';
   const { settings } = useFrontendSettings(restaurantId);
-  const navigate = useNavigate();
+  const { smoothNavigate } = useSmoothNavigation();
 
   const businessName = settings?.business_name || 'DabbaGaram';
   const contactPhone = settings?.contact_phone || '+91-9876543210';
@@ -35,16 +35,16 @@ const Navbar = () => {
   };
 
   const handleOrderNow = () => {
-    navigate(primaryCtaUrl);
+    smoothNavigate(primaryCtaUrl);
   };
 
   const handleNavigation = (path: string) => {
-    navigate(path);
+    smoothNavigate(path);
     setIsOpen(false);
   };
 
   const handleCartClick = () => {
-    navigate(cartButtonUrl);
+    smoothNavigate(cartButtonUrl);
   };
 
   return (
@@ -102,13 +102,13 @@ const Navbar = () => {
           <div className="hidden md:block">
             <div className="ml-10 flex items-baseline space-x-8">
               {navigationMenu.map((item: any, index: number) => (
-                <Link 
+                <button
                   key={item.id}
-                  to={item.url} 
+                  onClick={() => handleNavigation(item.url)}
                   className={`${index === 0 ? 'text-gray-900' : 'text-gray-600'} hover:text-indigo-600 px-3 py-2 text-sm font-medium transition-colors`}
                 >
                   {item.label}
-                </Link>
+                </button>
               ))}
             </div>
           </div>

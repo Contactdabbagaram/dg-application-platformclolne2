@@ -1,13 +1,15 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Navbar from '@/components/Navbar';
 import AssistiveTouch from '@/components/AssistiveTouch';
 import MenuCategories from '@/components/MenuCategories';
 import MenuItemCard from '@/components/MenuItemCard';
 import LocationPicker from '@/components/LocationPicker';
+import MenuSkeleton from '@/components/skeletons/MenuSkeleton';
 import { useMenuItems, MenuItem, OutletWithDistance } from '@/hooks/useMenu';
 import { useBusinessSettings } from '@/hooks/useBusinessSettings';
 import { useRestaurant } from '@/contexts/RestaurantContext';
+import { usePageTransition } from '@/contexts/PageTransitionContext';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { MapPin, Filter } from 'lucide-react';
@@ -19,11 +21,19 @@ const Menu = () => {
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
 
   const { currentRestaurant } = useRestaurant();
+  const { endTransition } = usePageTransition();
   const { data: menuItems, isLoading } = useMenuItems(
     selectedCategory || undefined, 
     selectedOutlet?.restaurant_id || currentRestaurant?.id
   );
   const { data: businessSettings } = useBusinessSettings();
+
+  // End transition when component is ready
+  useEffect(() => {
+    if (!isLoading) {
+      endTransition();
+    }
+  }, [isLoading, endTransition]);
 
   // Check URL params for category selection
   useEffect(() => {
@@ -61,8 +71,13 @@ const Menu = () => {
   // Default category image
   const defaultImage = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80';
 
+  // Show skeleton while loading
+  if (isLoading) {
+    return <MenuSkeleton />;
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 animate-fade-in">
       <Navbar />
       
       {/* Hero Section with Dynamic Category Image */}
@@ -126,11 +141,13 @@ const Menu = () => {
 
         {/* Menu Categories */}
         <div className="mb-8">
-          <MenuCategories
-            selectedCategory={selectedCategory}
-            onCategorySelect={handleCategorySelect}
-            restaurantId={selectedOutlet?.restaurant_id || currentRestaurant?.id}
-          />
+          <Suspense fallback={<div className="h-16 animate-pulse bg-gray-200 rounded-lg"></div>}>
+            <MenuCategories
+              selectedCategory={selectedCategory}
+              onCategorySelect={handleCategorySelect}
+              restaurantId={selectedOutlet?.restaurant_id || currentRestaurant?.id}
+            />
+          </Suspense>
         </div>
 
         {/* Outlet Info */}
@@ -150,21 +167,7 @@ const Menu = () => {
         )}
 
         {/* Menu Items Grid */}
-        {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="bg-white rounded-lg p-4 animate-pulse">
-                <div className="h-48 bg-gray-200 rounded mb-4"></div>
-                <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded mb-4"></div>
-                <div className="flex justify-between items-center">
-                  <div className="h-6 bg-gray-200 rounded w-16"></div>
-                  <div className="h-8 bg-gray-200 rounded w-16"></div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : menuItems && menuItems.length > 0 ? (
+        {menuItems && menuItems.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {menuItems.map((item) => (
               <MenuItemCard
