@@ -211,6 +211,7 @@ export type Database = {
           heading_font_weight: string | null
           heading_text_color: string | null
           hero_background_url: string | null
+          hero_carousel_timing: number | null
           hero_front_image_url: string | null
           hero_front_images: string[] | null
           hero_subtitle: string | null
@@ -285,6 +286,7 @@ export type Database = {
           heading_font_weight?: string | null
           heading_text_color?: string | null
           hero_background_url?: string | null
+          hero_carousel_timing?: number | null
           hero_front_image_url?: string | null
           hero_front_images?: string[] | null
           hero_subtitle?: string | null
@@ -359,6 +361,7 @@ export type Database = {
           heading_font_weight?: string | null
           heading_text_color?: string | null
           hero_background_url?: string | null
+          hero_carousel_timing?: number | null
           hero_front_image_url?: string | null
           hero_front_images?: string[] | null
           hero_subtitle?: string | null
@@ -452,37 +455,46 @@ export type Database = {
       }
       menu_categories: {
         Row: {
+          category_timings: string | null
           created_at: string | null
           description: string | null
           id: string
           image_url: string | null
           is_active: boolean | null
           name: string
+          parent_category_id: string | null
           petpooja_category_id: string | null
+          rank: number | null
           restaurant_id: string | null
           sort_order: number | null
           updated_at: string | null
         }
         Insert: {
+          category_timings?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
           name: string
+          parent_category_id?: string | null
           petpooja_category_id?: string | null
+          rank?: number | null
           restaurant_id?: string | null
           sort_order?: number | null
           updated_at?: string | null
         }
         Update: {
+          category_timings?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean | null
           name?: string
+          parent_category_id?: string | null
           petpooja_category_id?: string | null
+          rank?: number | null
           restaurant_id?: string | null
           sort_order?: number | null
           updated_at?: string | null
@@ -535,61 +547,112 @@ export type Database = {
       }
       menu_items: {
         Row: {
+          addon_based_on: number | null
+          allow_addon: boolean | null
+          allow_variation: boolean | null
+          attribute_id: string | null
+          base_price: number | null
           calories: number | null
           category_id: string | null
           created_at: string | null
           description: string | null
           id: string
+          ignore_discounts: boolean | null
+          ignore_taxes: boolean | null
           image_url: string | null
+          in_stock: number | null
+          is_favorite: boolean | null
           is_popular: boolean | null
           is_vegetarian: boolean | null
+          item_tags: string[] | null
+          item_taxes: string | null
+          minimum_prep_time: number | null
           name: string
+          nutrition: Json | null
+          order_types: string | null
+          packing_charges: number | null
           petpooja_item_id: string | null
           preparation_time: number | null
           price: number
+          rank: number | null
           rating: number | null
           restaurant_id: string | null
           sort_order: number | null
           status: Database["public"]["Enums"]["item_status"] | null
           updated_at: string | null
+          variation_group_name: string | null
         }
         Insert: {
+          addon_based_on?: number | null
+          allow_addon?: boolean | null
+          allow_variation?: boolean | null
+          attribute_id?: string | null
+          base_price?: number | null
           calories?: number | null
           category_id?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
+          ignore_discounts?: boolean | null
+          ignore_taxes?: boolean | null
           image_url?: string | null
+          in_stock?: number | null
+          is_favorite?: boolean | null
           is_popular?: boolean | null
           is_vegetarian?: boolean | null
+          item_tags?: string[] | null
+          item_taxes?: string | null
+          minimum_prep_time?: number | null
           name: string
+          nutrition?: Json | null
+          order_types?: string | null
+          packing_charges?: number | null
           petpooja_item_id?: string | null
           preparation_time?: number | null
           price: number
+          rank?: number | null
           rating?: number | null
           restaurant_id?: string | null
           sort_order?: number | null
           status?: Database["public"]["Enums"]["item_status"] | null
           updated_at?: string | null
+          variation_group_name?: string | null
         }
         Update: {
+          addon_based_on?: number | null
+          allow_addon?: boolean | null
+          allow_variation?: boolean | null
+          attribute_id?: string | null
+          base_price?: number | null
           calories?: number | null
           category_id?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
+          ignore_discounts?: boolean | null
+          ignore_taxes?: boolean | null
           image_url?: string | null
+          in_stock?: number | null
+          is_favorite?: boolean | null
           is_popular?: boolean | null
           is_vegetarian?: boolean | null
+          item_tags?: string[] | null
+          item_taxes?: string | null
+          minimum_prep_time?: number | null
           name?: string
+          nutrition?: Json | null
+          order_types?: string | null
+          packing_charges?: number | null
           petpooja_item_id?: string | null
           preparation_time?: number | null
           price?: number
+          rank?: number | null
           rating?: number | null
           restaurant_id?: string | null
           sort_order?: number | null
           status?: Database["public"]["Enums"]["item_status"] | null
           updated_at?: string | null
+          variation_group_name?: string | null
         }
         Relationships: [
           {
@@ -1140,44 +1203,568 @@ export type Database = {
           },
         ]
       }
+      petpooja_addon_groups: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          petpooja_addon_group_id: string
+          rank: number | null
+          restaurant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          petpooja_addon_group_id: string
+          rank?: number | null
+          restaurant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          petpooja_addon_group_id?: string
+          rank?: number | null
+          restaurant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "petpooja_addon_groups_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      petpooja_addon_items: {
+        Row: {
+          addon_group_id: string | null
+          attribute_id: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          petpooja_addon_item_id: string
+          price: number
+          rank: number | null
+          restaurant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          addon_group_id?: string | null
+          attribute_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          petpooja_addon_item_id: string
+          price?: number
+          rank?: number | null
+          restaurant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          addon_group_id?: string | null
+          attribute_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          petpooja_addon_item_id?: string
+          price?: number
+          rank?: number | null
+          restaurant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "petpooja_addon_items_addon_group_id_fkey"
+            columns: ["addon_group_id"]
+            isOneToOne: false
+            referencedRelation: "petpooja_addon_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "petpooja_addon_items_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      petpooja_attributes: {
+        Row: {
+          attribute_name: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          petpooja_attribute_id: string
+          restaurant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          attribute_name: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          petpooja_attribute_id: string
+          restaurant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          attribute_name?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          petpooja_attribute_id?: string
+          restaurant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "petpooja_attributes_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      petpooja_discounts: {
+        Row: {
+          applicable_on: string | null
+          category_item_ids: string | null
+          created_at: string | null
+          discount_days: string | null
+          discount_name: string
+          discount_type: number | null
+          discount_value: number
+          ends_at: string | null
+          has_coupon: boolean | null
+          id: string
+          is_active: boolean | null
+          max_amount: number | null
+          max_limit: number | null
+          min_amount: number | null
+          on_total: boolean | null
+          order_types: string | null
+          petpooja_discount_id: string
+          restaurant_id: string | null
+          starts_at: string | null
+          time_from: string | null
+          time_to: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          applicable_on?: string | null
+          category_item_ids?: string | null
+          created_at?: string | null
+          discount_days?: string | null
+          discount_name: string
+          discount_type?: number | null
+          discount_value: number
+          ends_at?: string | null
+          has_coupon?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          max_amount?: number | null
+          max_limit?: number | null
+          min_amount?: number | null
+          on_total?: boolean | null
+          order_types?: string | null
+          petpooja_discount_id: string
+          restaurant_id?: string | null
+          starts_at?: string | null
+          time_from?: string | null
+          time_to?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          applicable_on?: string | null
+          category_item_ids?: string | null
+          created_at?: string | null
+          discount_days?: string | null
+          discount_name?: string
+          discount_type?: number | null
+          discount_value?: number
+          ends_at?: string | null
+          has_coupon?: boolean | null
+          id?: string
+          is_active?: boolean | null
+          max_amount?: number | null
+          max_limit?: number | null
+          min_amount?: number | null
+          on_total?: boolean | null
+          order_types?: string | null
+          petpooja_discount_id?: string
+          restaurant_id?: string | null
+          starts_at?: string | null
+          time_from?: string | null
+          time_to?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "petpooja_discounts_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      petpooja_item_addon_groups: {
+        Row: {
+          addon_group_id: string | null
+          created_at: string | null
+          id: string
+          menu_item_id: string | null
+          selection_max: number | null
+          selection_min: number | null
+        }
+        Insert: {
+          addon_group_id?: string | null
+          created_at?: string | null
+          id?: string
+          menu_item_id?: string | null
+          selection_max?: number | null
+          selection_min?: number | null
+        }
+        Update: {
+          addon_group_id?: string | null
+          created_at?: string | null
+          id?: string
+          menu_item_id?: string | null
+          selection_max?: number | null
+          selection_min?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "petpooja_item_addon_groups_addon_group_id_fkey"
+            columns: ["addon_group_id"]
+            isOneToOne: false
+            referencedRelation: "petpooja_addon_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "petpooja_item_addon_groups_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      petpooja_item_variations: {
+        Row: {
+          allow_addon: boolean | null
+          created_at: string | null
+          group_name: string | null
+          id: string
+          is_active: boolean | null
+          menu_item_id: string | null
+          name: string
+          packing_charges: number | null
+          petpooja_item_variation_id: string
+          petpooja_variation_id: string
+          price: number
+          rank: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          allow_addon?: boolean | null
+          created_at?: string | null
+          group_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          menu_item_id?: string | null
+          name: string
+          packing_charges?: number | null
+          petpooja_item_variation_id: string
+          petpooja_variation_id: string
+          price: number
+          rank?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          allow_addon?: boolean | null
+          created_at?: string | null
+          group_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          menu_item_id?: string | null
+          name?: string
+          packing_charges?: number | null
+          petpooja_item_variation_id?: string
+          petpooja_variation_id?: string
+          price?: number
+          rank?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "petpooja_item_variations_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      petpooja_order_types: {
+        Row: {
+          created_at: string | null
+          id: string
+          order_type_name: string
+          petpooja_order_type_id: number
+          restaurant_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          order_type_name: string
+          petpooja_order_type_id: number
+          restaurant_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          order_type_name?: string
+          petpooja_order_type_id?: number
+          restaurant_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "petpooja_order_types_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      petpooja_taxes: {
+        Row: {
+          consider_in_core_amount: boolean | null
+          core_or_total: number | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          order_types: string | null
+          petpooja_tax_id: string
+          rank: number | null
+          restaurant_id: string | null
+          tax_name: string
+          tax_rate: number
+          tax_tax_type: number | null
+          tax_type: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          consider_in_core_amount?: boolean | null
+          core_or_total?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          order_types?: string | null
+          petpooja_tax_id: string
+          rank?: number | null
+          restaurant_id?: string | null
+          tax_name: string
+          tax_rate: number
+          tax_tax_type?: number | null
+          tax_type?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          consider_in_core_amount?: boolean | null
+          core_or_total?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          order_types?: string | null
+          petpooja_tax_id?: string
+          rank?: number | null
+          restaurant_id?: string | null
+          tax_name?: string
+          tax_rate?: number
+          tax_tax_type?: number | null
+          tax_type?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "petpooja_taxes_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      petpooja_variations: {
+        Row: {
+          created_at: string | null
+          group_name: string | null
+          id: string
+          name: string
+          petpooja_variation_id: string
+          restaurant_id: string | null
+          status: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          group_name?: string | null
+          id?: string
+          name: string
+          petpooja_variation_id: string
+          restaurant_id?: string | null
+          status?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          group_name?: string | null
+          id?: string
+          name?: string
+          petpooja_variation_id?: string
+          restaurant_id?: string | null
+          status?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "petpooja_variations_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       restaurants: {
         Row: {
           address: string | null
+          calculate_tax_on_delivery: boolean | null
+          calculate_tax_on_packing: boolean | null
+          city: string | null
           contact_information: string | null
+          country: string | null
           created_at: string | null
+          currency_symbol: string | null
+          delivery_charge: number | null
+          delivery_charge_taxes_id: string | null
           id: string
+          landmark: string | null
+          latitude: number | null
+          longitude: number | null
+          minimum_delivery_time: string | null
+          minimum_order_amount: number | null
+          minimum_prep_time: number | null
           name: string
+          packaging_applicable_on: string | null
+          packaging_charge: number | null
+          packaging_charge_type: string | null
+          packing_charge_taxes_id: string | null
           petpooja_access_token: string | null
           petpooja_app_key: string | null
           petpooja_app_secret: string | null
           petpooja_restaurant_id: string | null
+          service_charge_applicable_on: string | null
+          service_charge_calculate_on: number | null
+          service_charge_type: number | null
+          service_charge_value: number | null
+          state: string | null
           status: Database["public"]["Enums"]["restaurant_status"] | null
+          tax_on_service_charge: boolean | null
           updated_at: string | null
         }
         Insert: {
           address?: string | null
+          calculate_tax_on_delivery?: boolean | null
+          calculate_tax_on_packing?: boolean | null
+          city?: string | null
           contact_information?: string | null
+          country?: string | null
           created_at?: string | null
+          currency_symbol?: string | null
+          delivery_charge?: number | null
+          delivery_charge_taxes_id?: string | null
           id?: string
+          landmark?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          minimum_delivery_time?: string | null
+          minimum_order_amount?: number | null
+          minimum_prep_time?: number | null
           name: string
+          packaging_applicable_on?: string | null
+          packaging_charge?: number | null
+          packaging_charge_type?: string | null
+          packing_charge_taxes_id?: string | null
           petpooja_access_token?: string | null
           petpooja_app_key?: string | null
           petpooja_app_secret?: string | null
           petpooja_restaurant_id?: string | null
+          service_charge_applicable_on?: string | null
+          service_charge_calculate_on?: number | null
+          service_charge_type?: number | null
+          service_charge_value?: number | null
+          state?: string | null
           status?: Database["public"]["Enums"]["restaurant_status"] | null
+          tax_on_service_charge?: boolean | null
           updated_at?: string | null
         }
         Update: {
           address?: string | null
+          calculate_tax_on_delivery?: boolean | null
+          calculate_tax_on_packing?: boolean | null
+          city?: string | null
           contact_information?: string | null
+          country?: string | null
           created_at?: string | null
+          currency_symbol?: string | null
+          delivery_charge?: number | null
+          delivery_charge_taxes_id?: string | null
           id?: string
+          landmark?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          minimum_delivery_time?: string | null
+          minimum_order_amount?: number | null
+          minimum_prep_time?: number | null
           name?: string
+          packaging_applicable_on?: string | null
+          packaging_charge?: number | null
+          packaging_charge_type?: string | null
+          packing_charge_taxes_id?: string | null
           petpooja_access_token?: string | null
           petpooja_app_key?: string | null
           petpooja_app_secret?: string | null
           petpooja_restaurant_id?: string | null
+          service_charge_applicable_on?: string | null
+          service_charge_calculate_on?: number | null
+          service_charge_type?: number | null
+          service_charge_value?: number | null
+          state?: string | null
           status?: Database["public"]["Enums"]["restaurant_status"] | null
+          tax_on_service_charge?: boolean | null
           updated_at?: string | null
         }
         Relationships: []

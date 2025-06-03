@@ -7,6 +7,7 @@ import MenuItemCard from '@/components/MenuItemCard';
 import LocationPicker from '@/components/LocationPicker';
 import { useMenuItems, MenuItem, OutletWithDistance } from '@/hooks/useMenu';
 import { useBusinessSettings } from '@/hooks/useBusinessSettings';
+import { useRestaurant } from '@/contexts/RestaurantContext';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { MapPin, Filter } from 'lucide-react';
@@ -17,7 +18,11 @@ const Menu = () => {
   const [selectedOutlet, setSelectedOutlet] = useState<OutletWithDistance | null>(null);
   const [isLocationSheetOpen, setIsLocationSheetOpen] = useState(false);
 
-  const { data: menuItems, isLoading } = useMenuItems(selectedCategory || undefined);
+  const { currentRestaurant } = useRestaurant();
+  const { data: menuItems, isLoading } = useMenuItems(
+    selectedCategory || undefined, 
+    selectedOutlet?.restaurant_id || currentRestaurant?.id
+  );
   const { data: businessSettings } = useBusinessSettings();
 
   // Check URL params for category selection
@@ -124,7 +129,7 @@ const Menu = () => {
           <MenuCategories
             selectedCategory={selectedCategory}
             onCategorySelect={handleCategorySelect}
-            restaurantId={selectedOutlet?.restaurant_id}
+            restaurantId={selectedOutlet?.restaurant_id || currentRestaurant?.id}
           />
         </div>
 

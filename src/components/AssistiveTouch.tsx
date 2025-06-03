@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Home, Coffee, Utensils, ShoppingCart, Menu as MenuIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useMenuCategories } from '@/hooks/useMenu';
+import { useRestaurant } from '@/contexts/RestaurantContext';
 
 const AssistiveTouch = () => {
   const [isExpanded, setIsExpanded] = useState(false);
   const navigate = useNavigate();
-  const { data: categories } = useMenuCategories();
+  const { currentRestaurant } = useRestaurant();
+  const { data: categories } = useMenuCategories(currentRestaurant?.id);
 
   const menuItems = [
     { icon: Home, label: 'Home', path: '/' },
@@ -52,7 +54,7 @@ const AssistiveTouch = () => {
               ))}
             </div>
             
-            {/* Categories */}
+            {/* Categories - Only show if we have categories from the database */}
             {categories && categories.length > 0 && (
               <div>
                 <p className="text-xs font-medium text-gray-500 px-3 mb-2">Categories</p>

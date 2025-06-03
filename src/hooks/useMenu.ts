@@ -1,3 +1,4 @@
+
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -60,7 +61,10 @@ export const useMenuCategories = (restaurantId?: string) => {
     queryFn: async () => {
       let query = supabase
         .from('menu_categories')
-        .select('*')
+        .select(`
+          *,
+          menu_items!inner(id)
+        `)
         .eq('is_active', true)
         .order('sort_order');
 
@@ -75,14 +79,20 @@ export const useMenuCategories = (restaurantId?: string) => {
         throw error;
       }
       
-      return data as MenuCategory[];
+      // Filter categories that have at least one available menu item
+      const categoriesWithItems = data.filter(category => {
+        return category.menu_items && category.menu_items.length > 0;
+      });
+      
+      return categoriesWithItems.map(({ menu_items, ...category }) => category) as MenuCategory[];
     },
+    enabled: !!restaurantId,
   });
 };
 
-export const useMenuItems = (categoryId?: string) => {
+export const useMenuItems = (categoryId?: string, restaurantId?: string) => {
   return useQuery({
-    queryKey: ['menu-items', categoryId],
+    queryKey: ['menu-items', categoryId, restaurantId],
     queryFn: async () => {
       let query = supabase
         .from('menu_items')
@@ -92,6 +102,10 @@ export const useMenuItems = (categoryId?: string) => {
 
       if (categoryId) {
         query = query.eq('category_id', categoryId);
+      }
+
+      if (restaurantId) {
+        query = query.eq('restaurant_id', restaurantId);
       }
 
       const { data, error } = await query;
