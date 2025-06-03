@@ -1,6 +1,5 @@
 
 import { useEffect, Suspense } from 'react';
-import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import Testimonials from '@/components/Testimonials';
 import Footer from '@/components/Footer';
@@ -8,7 +7,6 @@ import HeroSkeleton from '@/components/skeletons/HeroSkeleton';
 import { useFrontendSettings } from '@/hooks/useFrontendSettings';
 import { useRestaurant } from '@/contexts/RestaurantContext';
 import { usePageTransition } from '@/contexts/PageTransitionContext';
-import { Loader2 } from 'lucide-react';
 
 const Index = () => {
   const { currentRestaurant, loading: restaurantLoading } = useRestaurant();
@@ -75,17 +73,11 @@ const Index = () => {
   }, [settings]);
 
   if (restaurantLoading || settingsLoading) {
-    return (
-      <div className="min-h-screen">
-        <Navbar />
-        <HeroSkeleton />
-      </div>
-    );
+    return <HeroSkeleton />;
   }
 
   return (
-    <div className="min-h-screen animate-fade-in">
-      <Navbar />
+    <div className="animate-fade-in">
       <Suspense fallback={<HeroSkeleton />}>
         <Hero />
       </Suspense>

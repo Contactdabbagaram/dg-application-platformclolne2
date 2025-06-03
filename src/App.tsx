@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { RestaurantProvider } from "@/contexts/RestaurantContext";
 import { PageTransitionProvider } from "@/contexts/PageTransitionContext";
-import LoadingOverlay from "@/components/LoadingOverlay";
+import Layout from "@/components/Layout";
 import Index from "./pages/Index";
 import Menu from "./pages/Menu";
 import Support from "./pages/Support";
@@ -31,16 +31,15 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <LoadingOverlay />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/menu" element={<Menu />} />
-              <Route path="/support" element={<Support />} />
+              <Route path="/" element={<Layout><Index /></Layout>} />
+              <Route path="/menu" element={<Layout><Menu /></Layout>} />
+              <Route path="/support" element={<Layout><Support /></Layout>} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/subscriptions" element={<Subscriptions />} />
-              <Route path="*" element={<NotFound />} />
+              <Route path="/subscriptions" element={<Layout><Subscriptions /></Layout>} />
+              <Route path="*" element={<Layout><NotFound /></Layout>} />
             </Routes>
           </BrowserRouter>
         </TooltipProvider>
