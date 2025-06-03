@@ -1,3 +1,4 @@
+
 import { useState, useEffect, Suspense } from 'react';
 import AssistiveTouch from '@/components/AssistiveTouch';
 import MenuCategories from '@/components/MenuCategories';
