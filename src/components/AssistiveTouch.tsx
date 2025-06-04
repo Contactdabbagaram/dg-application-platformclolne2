@@ -43,7 +43,7 @@ const AssistiveTouch = () => {
   };
 
   return (
-    <div className="fixed bottom-20 right-4 z-50">
+    <div className="fixed bottom-6 right-6 z-50">
       {isExpanded && (
         <>
           {/* Backdrop to close menu */}
@@ -115,17 +115,17 @@ const AssistiveTouch = () => {
       )}
       
       <Button
-        className={`w-12 h-12 rounded-full shadow-lg transition-all duration-200 ${
+        className={`w-14 h-14 rounded-full shadow-lg transition-all duration-200 ${
           isExpanded 
             ? 'bg-red-500 hover:bg-red-600' 
-            : 'bg-primary hover:bg-primary/90'
+            : 'bg-green-500 hover:bg-green-600'
         }`}
         onClick={() => setIsExpanded(!isExpanded)}
       >
         {isExpanded ? (
-          <X className="h-5 w-5" />
+          <X className="h-6 w-6 text-white" />
         ) : (
-          <MenuIcon className="h-5 w-5" />
+          <MenuIcon className="h-6 w-6 text-white" />
         )}
       </Button>
     </div>
