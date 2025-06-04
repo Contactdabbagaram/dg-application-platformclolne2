@@ -106,6 +106,7 @@ const Admin = () => {
             onNavigateToOutletManagement={() => setActiveView('business-settings')}
             onOutletSelect={handleOutletSelect}
             onNavigateToFrontendSettings={() => setActiveView('frontend-settings')}
+            onNavigateToStoreSettings={() => setActiveView('store-settings')}
           />
         );
       case 'business-settings':
@@ -124,6 +125,8 @@ const Admin = () => {
         );
       case 'frontend-settings':
         return <FrontendSettings />;
+      case 'store-settings':
+        return <StoreSettings restaurantId="00000000-0000-0000-0000-000000000001" />;
       case 'outlet':
         return (
           <OutletSettingsLayout
@@ -142,6 +145,7 @@ const Admin = () => {
             onNavigateToOutletManagement={() => setActiveView('business-settings')}
             onOutletSelect={handleOutletSelect}
             onNavigateToFrontendSettings={() => setActiveView('frontend-settings')}
+            onNavigateToStoreSettings={() => setActiveView('store-settings')}
           />
         );
     }
