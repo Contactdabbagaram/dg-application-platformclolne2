@@ -1,164 +1,331 @@
 
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  TrendingUp, 
-  DollarSign, 
-  ShoppingBag, 
-  Clock,
-  Users,
-  Star,
-  Package,
-  MapPin
-} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useStoreData } from '@/hooks/useStoreData';
+import { MapPin, Clock, Phone, Mail, Store, Settings, RefreshCw } from 'lucide-react';
 
 interface OutletDashboardProps {
   outletName: string;
 }
 
 const OutletDashboard = ({ outletName }: OutletDashboardProps) => {
-  const stats = [
-    {
-      title: "Today's Revenue",
-      value: "₹12,450",
-      change: "+12.5%",
-      icon: DollarSign,
-      color: "text-green-600"
-    },
-    {
-      title: "Orders Today",
-      value: "47",
-      change: "+8.2%",
-      icon: ShoppingBag,
-      color: "text-blue-600"
-    },
-    {
-      title: "Avg. Order Value",
-      value: "₹265",
-      change: "+3.1%",
-      icon: TrendingUp,
-      color: "text-purple-600"
-    },
-    {
-      title: "Active Customers",
-      value: "324",
-      change: "+15.3%",
-      icon: Users,
-      color: "text-orange-600"
-    }
-  ];
+  // For Airoli outlet, use the restaurant ID 'ydmpfabg'
+  const restaurantId = outletName === 'Airoli' ? 'ydmpfabg' : '00000000-0000-0000-0000-000000000001';
+  const { storeData, loading, error, refetch } = useStoreData(restaurantId);
 
-  const recentOrders = [
-    { id: "ORD001", customer: "Rahul Sharma", amount: "₹450", status: "preparing", time: "10 mins ago" },
-    { id: "ORD002", customer: "Priya Patel", amount: "₹320", status: "delivered", time: "25 mins ago" },
-    { id: "ORD003", customer: "Amit Kumar", amount: "₹680", status: "out_for_delivery", time: "35 mins ago" },
-    { id: "ORD004", customer: "Sneha Gupta", amount: "₹290", status: "confirmed", time: "45 mins ago" },
-  ];
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-6 animate-pulse">
+                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                <div className="h-8 bg-gray-200 rounded"></div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      preparing: { label: "Preparing", variant: "default" as const, color: "bg-yellow-100 text-yellow-800" },
-      delivered: { label: "Delivered", variant: "secondary" as const, color: "bg-green-100 text-green-800" },
-      out_for_delivery: { label: "Out for Delivery", variant: "default" as const, color: "bg-blue-100 text-blue-800" },
-      confirmed: { label: "Confirmed", variant: "outline" as const, color: "bg-gray-100 text-gray-800" },
-    };
-    
-    const config = statusConfig[status as keyof typeof statusConfig];
-    return <Badge className={config.color}>{config.label}</Badge>;
-  };
+  if (error) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-600">Error loading outlet data: {error.message}</p>
+        <Button onClick={() => refetch()} className="mt-4">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  const restaurant = storeData?.restaurant;
 
   return (
     <div className="space-y-6">
-      {/* Store Info */}
-      <div className="bg-white rounded-lg p-6 border">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold">{outletName} Store</h2>
-            <div className="flex items-center gap-2 mt-2 text-gray-600">
-              <MapPin className="h-4 w-4" />
-              <span>Sector 8, Airoli, Navi Mumbai</span>
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <span className="text-sm font-medium">Store Active</span>
-            </div>
-            <div className="text-sm text-gray-500 mt-1">Operating: 9:00 AM - 10:00 PM</div>
-          </div>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">{outletName} Outlet Dashboard</h1>
+          <p className="text-gray-600">
+            Restaurant ID: {restaurantId} | Status: 
+            <Badge variant={restaurant?.status === 'active' ? 'default' : 'secondary'} className="ml-2">
+              {restaurant?.status || 'Unknown'}
+            </Badge>
+          </p>
         </div>
+        <Button onClick={() => refetch()} variant="outline">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh Data
+        </Button>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={index}>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600">{stat.title}</p>
-                    <p className="text-2xl font-bold">{stat.value}</p>
-                    <p className={`text-sm ${stat.color}`}>{stat.change}</p>
-                  </div>
-                  <Icon className={`h-8 w-8 ${stat.color}`} />
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+      {/* Key Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Menu Categories</p>
+                <p className="text-2xl font-bold">{storeData?.categories?.length || 0}</p>
+              </div>
+              <Store className="h-8 w-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Menu Items</p>
+                <p className="text-2xl font-bold">{storeData?.items?.length || 0}</p>
+              </div>
+              <Settings className="h-8 w-8 text-green-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Tax Configurations</p>
+                <p className="text-2xl font-bold">{storeData?.taxes?.length || 0}</p>
+              </div>
+              <MapPin className="h-8 w-8 text-purple-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Active Discounts</p>
+                <p className="text-2xl font-bold">{storeData?.discounts?.length || 0}</p>
+              </div>
+              <Clock className="h-8 w-8 text-orange-500" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Recent Orders */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Orders</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {recentOrders.map((order) => (
-              <div key={order.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-4">
-                  <div>
-                    <p className="font-medium">{order.id}</p>
-                    <p className="text-sm text-gray-600">{order.customer}</p>
-                  </div>
+      {/* Restaurant Details */}
+      {restaurant && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Store className="h-5 w-5" />
+                Restaurant Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium">Name:</span>
+                  <p className="text-gray-600">{restaurant.name}</p>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="font-medium">{order.amount}</span>
-                  {getStatusBadge(order.status)}
-                  <span className="text-sm text-gray-500">{order.time}</span>
+                <div>
+                  <span className="font-medium">City:</span>
+                  <p className="text-gray-600">{restaurant.city || 'Not set'}</p>
+                </div>
+                <div>
+                  <span className="font-medium">State:</span>
+                  <p className="text-gray-600">{restaurant.state || 'Not set'}</p>
+                </div>
+                <div>
+                  <span className="font-medium">Country:</span>
+                  <p className="text-gray-600">{restaurant.country || 'India'}</p>
+                </div>
+                <div>
+                  <span className="font-medium">Currency:</span>
+                  <p className="text-gray-600">{restaurant.currency_symbol || '₹'}</p>
+                </div>
+                <div>
+                  <span className="font-medium">Petpooja ID:</span>
+                  <p className="text-gray-600">{restaurant.petpooja_restaurant_id || 'Not configured'}</p>
                 </div>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              
+              {restaurant.address && (
+                <div>
+                  <span className="font-medium">Address:</span>
+                  <p className="text-gray-600 mt-1">{restaurant.address}</p>
+                </div>
+              )}
 
-      {/* Quick Actions */}
+              {restaurant.contact_information && (
+                <div>
+                  <span className="font-medium">Contact:</span>
+                  <p className="text-gray-600 mt-1">{restaurant.contact_information}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Operational Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="font-medium">Min Order Amount:</span>
+                  <p className="text-gray-600">{restaurant.currency_symbol}{restaurant.minimum_order_amount || 0}</p>
+                </div>
+                <div>
+                  <span className="font-medium">Delivery Charge:</span>
+                  <p className="text-gray-600">{restaurant.currency_symbol}{restaurant.delivery_charge || 0}</p>
+                </div>
+                <div>
+                  <span className="font-medium">Min Prep Time:</span>
+                  <p className="text-gray-600">{restaurant.minimum_prep_time || 30} mins</p>
+                </div>
+                <div>
+                  <span className="font-medium">Min Delivery Time:</span>
+                  <p className="text-gray-600">{restaurant.minimum_delivery_time || 'Not set'}</p>
+                </div>
+                <div>
+                  <span className="font-medium">Packaging Charge:</span>
+                  <p className="text-gray-600">{restaurant.currency_symbol}{restaurant.packaging_charge || 0}</p>
+                </div>
+                <div>
+                  <span className="font-medium">Service Charge:</span>
+                  <p className="text-gray-600">
+                    {restaurant.service_charge_value ? 
+                      `${restaurant.currency_symbol}${restaurant.service_charge_value}` : 
+                      'Not configured'
+                    }
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Tax on Delivery:</span>
+                  <Badge variant={restaurant.calculate_tax_on_delivery ? 'default' : 'secondary'}>
+                    {restaurant.calculate_tax_on_delivery ? 'Yes' : 'No'}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Tax on Packing:</span>
+                  <Badge variant={restaurant.calculate_tax_on_packing ? 'default' : 'secondary'}>
+                    {restaurant.calculate_tax_on_packing ? 'Yes' : 'No'}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium">Tax on Service:</span>
+                  <Badge variant={restaurant.tax_on_service_charge ? 'default' : 'secondary'}>
+                    {restaurant.tax_on_service_charge ? 'Yes' : 'No'}
+                  </Badge>
+                </div>
+              </div>
+
+              {restaurant.latitude && restaurant.longitude && (
+                <div>
+                  <span className="font-medium">Location:</span>
+                  <p className="text-gray-600 mt-1">
+                    {restaurant.latitude.toFixed(6)}, {restaurant.longitude.toFixed(6)}
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Data Summary */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="cursor-pointer hover:shadow-md transition-shadow">
-          <CardContent className="p-6 text-center">
-            <Package className="h-8 w-8 text-blue-600 mx-auto mb-3" />
-            <h3 className="font-medium">Menu Items</h3>
-            <p className="text-sm text-gray-600">Manage your menu</p>
+        <Card>
+          <CardHeader>
+            <CardTitle>Menu Overview</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span>Active Categories:</span>
+                <span className="font-medium">
+                  {storeData?.categories?.filter(cat => cat.is_active).length || 0}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Available Items:</span>
+                <span className="font-medium">
+                  {storeData?.items?.filter(item => item.status === 'available').length || 0}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Item Variations:</span>
+                <span className="font-medium">{storeData?.variations?.length || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Addon Groups:</span>
+                <span className="font-medium">{storeData?.addons?.length || 0}</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
-        
-        <Card className="cursor-pointer hover:shadow-md transition-shadow">
-          <CardContent className="p-6 text-center">
-            <Clock className="h-8 w-8 text-green-600 mx-auto mb-3" />
-            <h3 className="font-medium">Store Hours</h3>
-            <p className="text-sm text-gray-600">Update operating hours</p>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Tax Configuration</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span>Total Taxes:</span>
+                <span className="font-medium">{storeData?.taxes?.length || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Active Taxes:</span>
+                <span className="font-medium">
+                  {storeData?.taxes?.filter(tax => tax.is_active).length || 0}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Avg Tax Rate:</span>
+                <span className="font-medium">
+                  {storeData?.taxes?.length ? 
+                    (storeData.taxes.reduce((sum, tax) => sum + tax.tax_rate, 0) / storeData.taxes.length).toFixed(1) + '%' : 
+                    '0%'
+                  }
+                </span>
+              </div>
+            </div>
           </CardContent>
         </Card>
-        
-        <Card className="cursor-pointer hover:shadow-md transition-shadow">
-          <CardContent className="p-6 text-center">
-            <Star className="h-8 w-8 text-yellow-600 mx-auto mb-3" />
-            <h3 className="font-medium">Reviews</h3>
-            <p className="text-sm text-gray-600">View customer feedback</p>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Promotions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span>Total Discounts:</span>
+                <span className="font-medium">{storeData?.discounts?.length || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Active Discounts:</span>
+                <span className="font-medium">
+                  {storeData?.discounts?.filter(discount => discount.is_active).length || 0}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span>Order Types:</span>
+                <span className="font-medium">{storeData?.orderTypes?.length || 0}</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

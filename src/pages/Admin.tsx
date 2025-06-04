@@ -21,6 +21,14 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  // Restaurant ID mapping for outlets
+  const outletRestaurantMapping = {
+    'Airoli': 'ydmpfabg',
+    'Andheri (W)': '00000000-0000-0000-0000-000000000002',
+    'Bandra': '00000000-0000-0000-0000-000000000003',
+    // Add more outlet mappings as needed
+  };
+
   useEffect(() => {
     // Check authentication
     const checkAuth = async () => {
@@ -82,6 +90,10 @@ const Admin = () => {
     setActiveOutletSection(section);
   };
 
+  const getRestaurantIdForOutlet = (outletName: string) => {
+    return outletRestaurantMapping[outletName] || 'ydmpfabg'; // Default to Airoli's restaurant ID
+  };
+
   const renderOutletContent = () => {
     switch (activeOutletSection) {
       case 'dashboard':
@@ -98,6 +110,8 @@ const Admin = () => {
   };
 
   const renderContent = () => {
+    const currentRestaurantId = getRestaurantIdForOutlet(selectedOutlet);
+
     switch (activeView) {
       case 'home':
         return (
@@ -126,7 +140,7 @@ const Admin = () => {
       case 'frontend-settings':
         return <FrontendSettings />;
       case 'store-settings':
-        return <StoreSettings restaurantId="00000000-0000-0000-0000-000000000001" />;
+        return <StoreSettings restaurantId={currentRestaurantId} />;
       case 'outlet':
         return (
           <OutletSettingsLayout
