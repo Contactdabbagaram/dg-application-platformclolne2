@@ -5,49 +5,64 @@ import { supabase } from '@/integrations/supabase/client';
 interface Restaurant {
   id: string;
   name: string;
+  address?: string;
+  contact_information?: string;
+  latitude?: number;
+  longitude?: number;
   status: string;
+  petpooja_restaurant_id?: string;
+  currency_symbol?: string;
+  country?: string;
+  city?: string;
+  state?: string;
+  minimum_order_amount?: number;
+  minimum_delivery_time?: string;
+  minimum_prep_time?: number;
+  delivery_charge?: number;
 }
 
 interface RestaurantContextType {
   currentRestaurant: Restaurant | null;
-  setCurrentRestaurant: (restaurant: Restaurant) => void;
   loading: boolean;
+  setCurrentRestaurant: (restaurant: Restaurant | null) => void;
 }
 
 const RestaurantContext = createContext<RestaurantContextType | undefined>(undefined);
-
-export const useRestaurant = () => {
-  const context = useContext(RestaurantContext);
-  if (context === undefined) {
-    throw new Error('useRestaurant must be used within a RestaurantProvider');
-  }
-  return context;
-};
 
 export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentRestaurant, setCurrentRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // For now, we'll automatically set the first active restaurant
-    // In the future, this could be based on user authentication and permissions
     const fetchDefaultRestaurant = async () => {
       try {
-        const { data, error } = await supabase
+        // First try to get the sample restaurant we just created
+        const { data: sampleRestaurant, error: sampleError } = await supabase
+          .from('restaurants')
+          .select('*')
+          .eq('id', '00000000-0000-0000-0000-000000000001')
+          .single();
+
+        if (sampleRestaurant && !sampleError) {
+          setCurrentRestaurant(sampleRestaurant);
+          setLoading(false);
+          return;
+        }
+
+        // Fallback to first active restaurant
+        const { data: restaurants, error } = await supabase
           .from('restaurants')
           .select('*')
           .eq('status', 'active')
-          .order('created_at')
-          .limit(1)
-          .single();
+          .limit(1);
 
         if (error) {
-          console.error('Error fetching restaurant:', error);
-        } else if (data) {
-          setCurrentRestaurant(data);
+          console.error('Error fetching restaurants:', error);
+        } else if (restaurants && restaurants.length > 0) {
+          setCurrentRestaurant(restaurants[0]);
         }
       } catch (error) {
-        console.error('Error fetching restaurant:', error);
+        console.error('Error in fetchDefaultRestaurant:', error);
       } finally {
         setLoading(false);
       }
@@ -56,13 +71,23 @@ export const RestaurantProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     fetchDefaultRestaurant();
   }, []);
 
+  const value = {
+    currentRestaurant,
+    loading,
+    setCurrentRestaurant
+  };
+
   return (
-    <RestaurantContext.Provider value={{
-      currentRestaurant,
-      setCurrentRestaurant,
-      loading
-    }}>
+    <RestaurantContext.Provider value={value}>
       {children}
     </RestaurantContext.Provider>
   );
+};
+
+export const useRestaurant = () => {
+  const context = useContext(RestaurantContext);
+  if (context === undefined) {
+    throw new Error('useRestaurant must be used within a RestaurantProvider');
+  }
+  return context;
 };
