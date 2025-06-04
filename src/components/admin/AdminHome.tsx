@@ -8,9 +8,16 @@ interface AdminHomeProps {
   onNavigateToOutletManagement: () => void;
   onOutletSelect: (outletName: string) => void;
   onNavigateToFrontendSettings: () => void;
+  onNavigateToStoreSettings: () => void;
 }
 
-const AdminHome = ({ onNavigateToBusinessSettings, onNavigateToOutletManagement, onOutletSelect, onNavigateToFrontendSettings }: AdminHomeProps) => {
+const AdminHome = ({ 
+  onNavigateToBusinessSettings, 
+  onNavigateToOutletManagement, 
+  onOutletSelect, 
+  onNavigateToFrontendSettings,
+  onNavigateToStoreSettings 
+}: AdminHomeProps) => {
   const outlets = [
     { name: 'Airoli', city: 'Navi Mumbai', status: 'active' },
     { name: 'Andheri (W)', city: 'Mumbai', status: 'active' },

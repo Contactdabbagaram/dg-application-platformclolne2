@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,6 +11,7 @@ import OutletOrders from '@/components/admin/OutletOrders';
 import OutletReviews from '@/components/admin/OutletReviews';
 import OutletSettings from '@/components/admin/OutletSettings';
 import FrontendSettings from '@/components/admin/FrontendSettings';
+import StoreSettings from '@/components/admin/StoreSettings';
 
 const Admin = () => {
   const [activeView, setActiveView] = useState('home');
