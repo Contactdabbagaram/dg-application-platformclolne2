@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,9 +22,9 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Restaurant ID mapping for outlets
+  // Restaurant ID mapping for outlets - using proper UUIDs from database
   const outletRestaurantMapping = {
-    'Airoli': 'ydmpfabg',
+    'Airoli': '00000000-0000-0000-0000-000000000001', // We'll create this UUID for Airoli
     'Andheri (W)': '00000000-0000-0000-0000-000000000002',
     'Bandra': '00000000-0000-0000-0000-000000000003',
     // Add more outlet mappings as needed
@@ -91,7 +92,7 @@ const Admin = () => {
   };
 
   const getRestaurantIdForOutlet = (outletName: string) => {
-    return outletRestaurantMapping[outletName] || 'ydmpfabg'; // Default to Airoli's restaurant ID
+    return outletRestaurantMapping[outletName] || '00000000-0000-0000-0000-000000000001'; // Default to Airoli's restaurant ID
   };
 
   const renderOutletContent = () => {

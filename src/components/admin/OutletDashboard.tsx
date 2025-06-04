@@ -11,8 +11,17 @@ interface OutletDashboardProps {
 }
 
 const OutletDashboard = ({ outletName }: OutletDashboardProps) => {
-  // For Airoli outlet, use the restaurant ID 'ydmpfabg'
-  const restaurantId = outletName === 'Airoli' ? 'ydmpfabg' : '00000000-0000-0000-0000-000000000001';
+  // Map outlet names to restaurant IDs
+  const getRestaurantId = (outletName: string) => {
+    const mapping = {
+      'Airoli': '00000000-0000-0000-0000-000000000001',
+      'Andheri (W)': '00000000-0000-0000-0000-000000000002',
+      'Bandra': '00000000-0000-0000-0000-000000000003',
+    };
+    return mapping[outletName] || '00000000-0000-0000-0000-000000000001';
+  };
+
+  const restaurantId = getRestaurantId(outletName);
   const { storeData, loading, error, refetch } = useStoreData(restaurantId);
 
   if (loading) {
