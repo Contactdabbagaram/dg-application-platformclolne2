@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,6 +12,7 @@ import OutletReviews from '@/components/admin/OutletReviews';
 import OutletSettings from '@/components/admin/OutletSettings';
 import FrontendSettings from '@/components/admin/FrontendSettings';
 import StoreSettings from '@/components/admin/StoreSettings';
+import OutletMenuManagement from '@/components/admin/OutletMenuManagement';
 
 const Admin = () => {
   const [activeView, setActiveView] = useState('home');
@@ -96,9 +96,13 @@ const Admin = () => {
   };
 
   const renderOutletContent = () => {
+    const currentRestaurantId = getRestaurantIdForOutlet(selectedOutlet);
+
     switch (activeOutletSection) {
       case 'dashboard':
         return <OutletDashboard outletName={selectedOutlet} />;
+      case 'menu':
+        return <OutletMenuManagement outletName={selectedOutlet} restaurantId={currentRestaurantId} />;
       case 'orders':
         return <OutletOrders outletName={selectedOutlet} />;
       case 'reviews':

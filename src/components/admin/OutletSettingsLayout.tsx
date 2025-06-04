@@ -35,6 +35,7 @@ const OutletSettingsLayout = ({
 
   const sidebarItems = [
     { id: 'dashboard', label: 'Store Dashboard', icon: Store },
+    { id: 'menu', label: 'Menu Management', icon: Package },
     { id: 'orders', label: 'Store Orders', icon: ShoppingBag },
     { id: 'reviews', label: 'Reviews', icon: Star },
     { id: 'settings', label: 'Store Settings', icon: Settings },
@@ -44,6 +45,8 @@ const OutletSettingsLayout = ({
     switch (activeSection) {
       case 'dashboard':
         return 'Dashboard';
+      case 'menu':
+        return 'Menu Management';
       case 'orders':
         return 'Orders';
       case 'reviews':
