@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,7 +30,9 @@ import {
   Eye,
   X,
   ArrowLeft,
-  MessageSquare
+  MessageSquare,
+  ExternalLink,
+  CheckCircle
 } from 'lucide-react';
 
 interface BusinessSettingsProps {
@@ -50,9 +51,7 @@ const BusinessSettings = ({ onAddOutlet, onBack }: BusinessSettingsProps) => {
   const [businessPhone, setBusinessPhone] = useState('');
   const [businessEmail, setBusinessEmail] = useState('');
   const [openSections, setOpenSections] = useState<string[]>(['google-maps']);
-  const [primaryColor, setPrimaryColor] = useState('#3B82F6');
-  const [secondaryColor, setSecondaryColor] = useState('#EF4444');
-  const [logoPreview, setLogoPreview] = useState<string>('');
+  const [apiKeyTesting, setApiKeyTesting] = useState(false);
 
   // Load settings when data is available
   useEffect(() => {
@@ -74,11 +73,31 @@ const BusinessSettings = ({ onAddOutlet, onBack }: BusinessSettingsProps) => {
     );
   };
 
-  const staffMembers = [
-    { id: 1, name: 'John Smith', email: 'john@dabbagaram.com', role: 'Business Owner', avatar: '' },
-    { id: 2, name: 'Sarah Johnson', email: 'sarah@dabbagaram.com', role: 'Delivery Agent', avatar: '' },
-    { id: 3, name: 'Mike Chen', email: 'mike@dabbagaram.com', role: 'Order Viewer', avatar: '' },
-  ];
+  const testGoogleMapsApi = async () => {
+    if (!googleMapsApiKey.trim()) {
+      toast.error('Please enter a Google Maps API key first');
+      return;
+    }
+
+    setApiKeyTesting(true);
+    try {
+      // Test the API key by making a simple request
+      const script = document.createElement('script');
+      script.src = `https://maps.googleapis.com/maps/api/js?key=${googleMapsApiKey}&libraries=places`;
+      script.onload = () => {
+        toast.success('Google Maps API key is working correctly!');
+        setApiKeyTesting(false);
+      };
+      script.onerror = () => {
+        toast.error('Invalid Google Maps API key or API access denied');
+        setApiKeyTesting(false);
+      };
+      document.head.appendChild(script);
+    } catch (error) {
+      toast.error('Failed to test Google Maps API key');
+      setApiKeyTesting(false);
+    }
+  };
 
   const handleSaveSettings = async () => {
     try {
@@ -98,6 +117,12 @@ const BusinessSettings = ({ onAddOutlet, onBack }: BusinessSettingsProps) => {
   };
 
   const isApiKeyConfigured = googleMapsApiKey && googleMapsApiKey.trim().length > 0;
+
+  const staffMembers = [
+    { id: 1, name: 'John Smith', email: 'john@dabbagaram.com', role: 'Business Owner', avatar: '' },
+    { id: 2, name: 'Sarah Johnson', email: 'sarah@dabbagaram.com', role: 'Delivery Agent', avatar: '' },
+    { id: 3, name: 'Mike Chen', email: 'mike@dabbagaram.com', role: 'Order Viewer', avatar: '' },
+  ];
 
   return (
     <div className="space-y-6">
@@ -143,146 +168,109 @@ const BusinessSettings = ({ onAddOutlet, onBack }: BusinessSettingsProps) => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
-                <span>Integrations</span>
+                <span>Google Maps Integration</span>
                 <Badge variant={isApiKeyConfigured ? "default" : "secondary"}>
-                  Google Maps: {isApiKeyConfigured ? "Connected" : "Not Configured"}
+                  {isApiKeyConfigured ? "Connected" : "Not Configured"}
                 </Badge>
               </CardTitle>
               <p className="text-sm text-gray-600">
-                Google Analytics, FB Ads, Google Ads, Google Firebase and native apps.
+                Configure Google Maps API for location search, distance calculation, and outlet mapping.
               </p>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Google Maps */}
-              <Collapsible open={openSections.includes('google-maps')} onOpenChange={() => toggleSection('google-maps')}>
-                <CollapsibleTrigger className="flex items-center justify-between w-full p-3 rounded-lg border hover:bg-gray-50">
-                  <h4 className="font-medium">Google Maps</h4>
-                  {openSections.includes('google-maps') ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </CollapsibleTrigger>
-                <CollapsibleContent className="mt-3 space-y-4">
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <p className="text-sm text-yellow-800">
-                      See <span className="font-medium">Google Maps Integration</span> guide to get Google Maps API Key
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="google-maps-key">Google Maps API Key</Label>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-medium text-blue-900 mb-2">Setup Instructions</h4>
+                <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                  <li>Go to the Google Cloud Console</li>
+                  <li>Create a new project or select existing one</li>
+                  <li>Enable "Places API" and "Distance Matrix API"</li>
+                  <li>Create an API key with proper restrictions</li>
+                  <li>Copy and paste the API key below</li>
+                </ol>
+                <div className="mt-3">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => window.open('https://console.cloud.google.com/apis/credentials', '_blank')}
+                  >
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Google Cloud Console
+                  </Button>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="google-maps-key">Google Maps API Key</Label>
+                  <div className="flex gap-2">
                     <Input
                       id="google-maps-key"
                       type="password"
                       value={googleMapsApiKey}
                       onChange={(e) => setGoogleMapsApiKey(e.target.value)}
-                      placeholder="••••••••••••••••••••••••••••••••••••"
+                      placeholder="Enter your Google Maps API key"
+                      className="flex-1"
                     />
-                    {isApiKeyConfigured && (
-                      <p className="text-xs text-green-600">✓ API Key configured</p>
-                    )}
+                    <Button 
+                      variant="outline" 
+                      onClick={testGoogleMapsApi}
+                      disabled={apiKeyTesting || !googleMapsApiKey.trim()}
+                    >
+                      {apiKeyTesting ? 'Testing...' : 'Test API'}
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Distance calculation method</Label>
-                    <Select value={distanceMethod} onValueChange={setDistanceMethod}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="route">Route - Route distance using Google Maps APIs</SelectItem>
-                        <SelectItem value="direct">Direct - Direct distance calculation</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <p className="text-xs text-gray-600">
-                      Route method requires Google Maps API Key.
-                      If Google APIs fails then distance calculation automatically falls back to Direct method.
-                    </p>
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-
-              <Separator />
-
-              {/* Google Analytics */}
-              <Collapsible open={openSections.includes('google-analytics')} onOpenChange={() => toggleSection('google-analytics')}>
-                <CollapsibleTrigger className="flex items-center justify-between w-full p-3 rounded-lg border hover:bg-gray-50">
-                  <h4 className="font-medium">Google Analytics</h4>
-                  {openSections.includes('google-analytics') ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </CollapsibleTrigger>
-                <CollapsibleContent className="mt-3 space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="ga-file">Google Analytics Configuration File</Label>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                      <Upload className="h-8 w-8 mx-auto text-gray-400 mb-2" />
-                      <p className="text-sm text-gray-600">Drop your JSON file here or click to browse</p>
-                      <Input type="file" accept=".json" className="mt-2" />
+                  {isApiKeyConfigured && (
+                    <div className="flex items-center gap-2 text-xs text-green-600">
+                      <CheckCircle className="h-4 w-4" />
+                      API Key configured
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="auth-key-id">Auth key Id</Label>
-                    <Input id="auth-key-id" defaultValue="6X5AGU6CS8" />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch id="analytics-enabled" defaultChecked />
-                    <Label htmlFor="analytics-enabled">Analytics Enabled</Label>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="universal-deeplink-ios">Universal Deeplink IOS (apple-app-site-association)</Label>
-                    <Textarea 
-                      id="universal-deeplink-ios" 
-                      defaultValue={`{
-  "applinks": {
-    "apps": [],
-    "details": [
-      {
-        "appID": "G2832QPNUP.com.dabbagaram.autiller",
-        "paths": [
-          "*"
-        ]
-      }
-    ]
-  }
-}`}
-                      className="font-mono text-sm"
-                      rows={15}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="app-store-url">App Store url</Label>
-                    <Input id="app-store-url" defaultValue="https://apps.apple.com/app/id1524604290" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="gcm-key">GCM Key</Label>
-                    <Input id="gcm-key" type="password" defaultValue="•••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••••" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="universal-deeplink-android">Universal Deeplink Android (assetlinks.json)</Label>
-                    <Textarea 
-                      id="universal-deeplink-android" 
-                      defaultValue={`[
-  {
-    "relation": [
-      "delegate_permission/common.handle_all_urls"
-    ],
-    "target": {
-      "namespace": "android_app",
-      "package_name": "com.dabbagaram.autiller",
-      "sha256_cert_fingerprints": [
+                  )}
+                </div>
 
-        "68:9B:28:61:A4:C6:41:DE:8A:0C:06:F7:26:40:0F:A2:71:EF:96:28:3B:7F:E9:C6:08:9B:A1:49:6D:2A:4E:6C",
+                <div className="space-y-2">
+                  <Label>Distance Calculation Method</Label>
+                  <Select value={distanceMethod} onValueChange={setDistanceMethod}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="route">Route - Accurate driving distance via Google Maps</SelectItem>
+                      <SelectItem value="direct">Direct - Straight-line distance calculation</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-600">
+                    Route method requires Google Maps API Key for accurate delivery estimates.
+                    Direct method provides approximate distances without API dependency.
+                  </p>
+                </div>
 
-        "02:F9:DE:70:C7:9D:F9:ED:00:AB:6D:F8:29:DB:C8:81:3D:D7:89:32:BB:DC:E4:5E:CB:62:71:43:15:F0:51:06"
-      ]
-    }
-  }
-]`}
-                      className="font-mono text-sm"
-                      rows={10}
-                    />
+                {!isApiKeyConfigured && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <p className="text-sm text-yellow-800">
+                      <strong>Location search is currently using fallback mode.</strong> Configure your Google Maps API key above to enable:
+                    </p>
+                    <ul className="text-sm text-yellow-700 mt-2 list-disc list-inside">
+                      <li>Real-time location search suggestions</li>
+                      <li>Accurate driving distance calculations</li>
+                      <li>Precise delivery time estimates</li>
+                      <li>Enhanced user experience</li>
+                    </ul>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="play-store-url">Play Store url</Label>
-                    <Input id="play-store-url" defaultValue="https://play.google.com/store/apps/details?id=com.dabbagaram.autiller" />
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
+                )}
+              </div>
             </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>Other Integrations</span>
+                <Badge variant="secondary">Coming Soon</Badge>
+              </CardTitle>
+              <p className="text-sm text-gray-600">
+                Google Analytics, Facebook Ads, Google Ads, and more integrations will be available soon.
+              </p>
+            </CardHeader>
           </Card>
         </TabsContent>
 
@@ -379,37 +367,6 @@ const BusinessSettings = ({ onAddOutlet, onBack }: BusinessSettingsProps) => {
                     </div>
                   </div>
                 ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Available Roles</CardTitle>
-              <p className="text-sm text-gray-600">Role permissions and access levels</p>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 border rounded-lg">
-                  <h4 className="font-medium mb-2">Business Owner</h4>
-                  <p className="text-sm text-gray-600 mb-3">Full access to all features and settings</p>
-                  <Badge>Full Access</Badge>
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <h4 className="font-medium mb-2">Delivery Agent</h4>
-                  <p className="text-sm text-gray-600 mb-3">Access to delivery management and orders</p>
-                  <Badge variant="secondary">Limited Access</Badge>
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <h4 className="font-medium mb-2">Order Viewer</h4>
-                  <p className="text-sm text-gray-600 mb-3">View orders and customer information</p>
-                  <Badge variant="secondary">Read Only</Badge>
-                </div>
-                <div className="p-4 border rounded-lg">
-                  <h4 className="font-medium mb-2">Kitchen Staff</h4>
-                  <p className="text-sm text-gray-600 mb-3">Access to order preparation and kitchen dashboard</p>
-                  <Badge variant="secondary">Kitchen Access</Badge>
-                </div>
               </div>
             </CardContent>
           </Card>

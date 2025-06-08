@@ -11,7 +11,7 @@ import { useRestaurant } from '@/contexts/RestaurantContext';
 import { usePageTransition } from '@/contexts/PageTransitionContext';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { MapPin, Filter } from 'lucide-react';
+import { MapPin, Filter, AlertCircle } from 'lucide-react';
 
 const Menu = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -75,12 +75,14 @@ const Menu = () => {
     return <MenuSkeleton />;
   }
 
+  const hasGoogleMapsApi = businessSettings?.googleMapsApiKey && businessSettings.googleMapsApiKey.trim() !== '';
+
   return (
     <div className="min-h-screen bg-gray-50 animate-fade-in">
       {/* Hero Section with Dynamic Category Image */}
       <div className="relative h-48 md:h-64 overflow-hidden">
         <img
-          src={categoryImage || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80'}
+          src={categoryImage || defaultImage}
           alt="Menu category"
           className="w-full h-full object-cover transition-all duration-500"
         />
@@ -121,17 +123,20 @@ const Menu = () => {
       </div>
 
       {/* Google Maps API Status */}
-      {businessSettings && !businessSettings.googleMapsApiKey && (
-        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+      {!hasGoogleMapsApi && (
+        <div className="mx-4 mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-            <span className="text-yellow-800 font-medium">
-              Google Maps API not configured
-            </span>
+            <AlertCircle className="h-5 w-5 text-yellow-600" />
+            <div>
+              <p className="text-yellow-800 font-medium">
+                Enhanced Location Services Unavailable
+              </p>
+              <p className="text-yellow-700 text-sm mt-1">
+                Google Maps API is not configured. Location search is using basic functionality. 
+                Configure the API key in admin settings for better location search and accurate delivery estimates.
+              </p>
+            </div>
           </div>
-          <p className="text-yellow-700 text-sm mt-1">
-            Location search will use fallback functionality. Configure Google Maps API in admin settings for better experience.
-          </p>
         </div>
       )}
 
@@ -148,7 +153,7 @@ const Menu = () => {
 
       {/* Outlet Info */}
       {selectedOutlet && (
-        <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border">
+        <div className="mx-4 mb-6 p-4 bg-white rounded-lg shadow-sm border">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="font-medium text-gray-900">{selectedOutlet.name}</h3>
@@ -163,29 +168,31 @@ const Menu = () => {
       )}
 
       {/* Menu Items Grid */}
-      {menuItems && menuItems.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {menuItems.map((item) => (
-            <MenuItemCard
-              key={item.id}
-              item={item}
-              onAddToCart={handleAddToCart}
-            />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-12">
-          <div className="text-gray-400 mb-4">
-            <Filter className="h-16 w-16 mx-auto" />
+      <div className="px-4">
+        {menuItems && menuItems.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {menuItems.map((item) => (
+              <MenuItemCard
+                key={item.id}
+                item={item}
+                onAddToCart={handleAddToCart}
+              />
+            ))}
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No items found</h3>
-          <p className="text-gray-600">
-            {selectedCategory 
-              ? 'No items available in this category.' 
-              : 'No menu items available at the moment.'}
-          </p>
-        </div>
-      )}
+        ) : (
+          <div className="text-center py-12">
+            <div className="text-gray-400 mb-4">
+              <Filter className="h-16 w-16 mx-auto" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No items found</h3>
+            <p className="text-gray-600">
+              {selectedCategory 
+                ? 'No items available in this category.' 
+                : 'No menu items available at the moment.'}
+            </p>
+          </div>
+        )}
+      </div>
 
       <AssistiveTouch />
     </div>
