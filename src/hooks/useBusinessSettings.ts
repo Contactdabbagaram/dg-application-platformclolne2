@@ -1,5 +1,6 @@
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface BusinessSettings {
   googleMapsApiKey?: string;
@@ -7,21 +8,34 @@ export interface BusinessSettings {
   businessAddress?: string;
   businessPhone?: string;
   businessEmail?: string;
+  distanceCalculationMethod?: string;
 }
 
 const fetchBusinessSettings = async (): Promise<BusinessSettings> => {
-  // Mock implementation - replace with actual API call
-  // In a real implementation, this would fetch from your backend
-  
-  // For now, return mock data that includes Google Maps API key
-  // You should replace this with actual API integration
-  return {
-    googleMapsApiKey: '', // This should come from your admin settings
-    businessName: 'Dabba Garam',
-    businessAddress: 'Mumbai, Maharashtra',
-    businessPhone: '+91 98765 43210',
-    businessEmail: 'contact@dabbagaram.com'
-  };
+  const { data, error } = await supabase.functions.invoke('admin-business-settings', {
+    method: 'GET'
+  });
+
+  if (error) {
+    console.error('Error fetching business settings:', error);
+    throw error;
+  }
+
+  return data;
+};
+
+const updateBusinessSettings = async (settings: BusinessSettings): Promise<BusinessSettings> => {
+  const { data, error } = await supabase.functions.invoke('admin-business-settings', {
+    method: 'POST',
+    body: settings
+  });
+
+  if (error) {
+    console.error('Error updating business settings:', error);
+    throw error;
+  }
+
+  return data;
 };
 
 export const useBusinessSettings = () => {
@@ -29,5 +43,16 @@ export const useBusinessSettings = () => {
     queryKey: ['business-settings'],
     queryFn: fetchBusinessSettings,
     staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+};
+
+export const useUpdateBusinessSettings = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: updateBusinessSettings,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['business-settings'] });
+    },
   });
 };

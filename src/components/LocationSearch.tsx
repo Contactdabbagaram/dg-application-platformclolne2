@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { MapPin, Navigation } from 'lucide-react';
+import { useBusinessSettings } from '@/hooks/useBusinessSettings';
 
 interface LocationSearchProps {
   onLocationSelect: (location: string) => void;
@@ -19,8 +20,11 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
+  const [apiKeyError, setApiKeyError] = useState(false);
   const autocompleteService = useRef<any>(null);
   const placesService = useRef<any>(null);
+  
+  const { data: businessSettings } = useBusinessSettings();
 
   // Load Google Maps API
   useEffect(() => {
@@ -32,31 +36,38 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
           return;
         }
 
-        // Fetch API key from business settings
-        const response = await fetch('/api/admin/business-settings');
-        const data = await response.json();
+        // Get API key from business settings
+        const apiKey = businessSettings?.googleMapsApiKey;
         
-        if (!data.googleMapsApiKey) {
+        if (!apiKey) {
           console.warn('Google Maps API key not configured in business settings');
+          setApiKeyError(true);
           return;
         }
 
         // Load Google Maps script
         const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${data.googleMapsApiKey}&libraries=places`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
         script.async = true;
         script.defer = true;
         script.onload = () => {
           initializeServices();
+          setApiKeyError(false);
+        };
+        script.onerror = () => {
+          setApiKeyError(true);
         };
         document.head.appendChild(script);
       } catch (error) {
         console.error('Error loading Google Maps:', error);
+        setApiKeyError(true);
       }
     };
 
-    loadGoogleMaps();
-  }, []);
+    if (businessSettings) {
+      loadGoogleMaps();
+    }
+  }, [businessSettings]);
 
   const initializeServices = () => {
     if (window.google && window.google.maps) {
@@ -118,14 +129,14 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
                 } else {
                   console.error('Geocoding failed:', status);
                   // Fallback
-                  const mockLocation = 'Current Location - Bangalore, Karnataka';
+                  const mockLocation = 'Current Location - Mumbai, Maharashtra';
                   setSearchQuery(mockLocation);
                   onLocationSelect(mockLocation);
                 }
               });
             } else {
               // Fallback when Google Maps not loaded
-              const mockLocation = 'Current Location - Bangalore, Karnataka';
+              const mockLocation = 'Current Location - Mumbai, Maharashtra';
               setSearchQuery(mockLocation);
               onLocationSelect(mockLocation);
               setIsLoading(false);
@@ -161,6 +172,7 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
             className="pr-10"
+            disabled={apiKeyError}
           />
           <MapPin className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
         </div>
@@ -168,7 +180,7 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
           variant="outline"
           size="sm"
           onClick={getCurrentLocation}
-          disabled={isLoading}
+          disabled={isLoading || apiKeyError}
         >
           <Navigation className="h-4 w-4" />
         </Button>
@@ -191,7 +203,13 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
         </div>
       )}
       
-      {!googleMapsLoaded && (
+      {apiKeyError && (
+        <div className="text-xs text-red-500 mt-2">
+          Google Maps API key not configured. Please contact admin.
+        </div>
+      )}
+      
+      {!googleMapsLoaded && !apiKeyError && businessSettings?.googleMapsApiKey && (
         <div className="text-xs text-gray-500 mt-2">
           Loading Google Maps...
         </div>

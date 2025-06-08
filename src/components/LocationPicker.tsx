@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { MapPin, Navigation, Clock, CheckCircle } from 'lucide-react';
 import LocationSearch from './LocationSearch';
 import { useNearestOutlets, OutletWithDistance } from '@/hooks/useMenu';
+import { useBusinessSettings } from '@/hooks/useBusinessSettings';
 
 interface LocationPickerProps {
   onOutletSelect: (outlet: OutletWithDistance) => void;
@@ -29,6 +30,8 @@ const LocationPicker = ({ onOutletSelect, selectedOutlet }: LocationPickerProps)
     userLocation?.lat,
     userLocation?.lng
   );
+  
+  const { data: businessSettings } = useBusinessSettings();
 
   // Load Google Maps API
   useEffect(() => {
@@ -39,16 +42,15 @@ const LocationPicker = ({ onOutletSelect, selectedOutlet }: LocationPickerProps)
           return;
         }
 
-        const response = await fetch('/api/admin/business-settings');
-        const data = await response.json();
+        const apiKey = businessSettings?.googleMapsApiKey;
         
-        if (!data.googleMapsApiKey) {
+        if (!apiKey) {
           console.warn('Google Maps API key not configured');
           return;
         }
 
         const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${data.googleMapsApiKey}&libraries=places`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
         script.async = true;
         script.defer = true;
         script.onload = () => {
@@ -60,8 +62,10 @@ const LocationPicker = ({ onOutletSelect, selectedOutlet }: LocationPickerProps)
       }
     };
 
-    loadGoogleMaps();
-  }, []);
+    if (businessSettings) {
+      loadGoogleMaps();
+    }
+  }, [businessSettings]);
 
   const initializeServices = () => {
     if (window.google && window.google.maps) {
@@ -75,8 +79,20 @@ const LocationPicker = ({ onOutletSelect, selectedOutlet }: LocationPickerProps)
     if (userLocation && outlets && googleMapsLoaded && distanceService.current) {
       calculateDistances();
     } else if (userLocation && outlets && !googleMapsLoaded) {
-      // Fallback to mock distances if Google Maps not loaded
-      setOutletsWithDistance(outlets);
+      // Fallback to direct distance calculation if Google Maps not loaded
+      const outletsWithDirectDistance = outlets.map(outlet => ({
+        ...outlet,
+        distance: calculateDirectDistance(userLocation, {
+          lat: outlet.latitude,
+          lng: outlet.longitude
+        }),
+        duration: Math.round(calculateDirectDistance(userLocation, {
+          lat: outlet.latitude,
+          lng: outlet.longitude
+        }) * 3) // Approximate 3 minutes per km
+      }));
+      outletsWithDirectDistance.sort((a, b) => a.distance - b.distance);
+      setOutletsWithDistance(outletsWithDirectDistance);
     }
   }, [userLocation, outlets, googleMapsLoaded]);
 
@@ -113,7 +129,11 @@ const LocationPicker = ({ onOutletSelect, selectedOutlet }: LocationPickerProps)
               distance: calculateDirectDistance(userLocation, {
                 lat: outlet.latitude,
                 lng: outlet.longitude
-              })
+              }),
+              duration: Math.round(calculateDirectDistance(userLocation, {
+                lat: outlet.latitude,
+                lng: outlet.longitude
+              }) * 3)
             };
           }
         });
@@ -123,7 +143,20 @@ const LocationPicker = ({ onOutletSelect, selectedOutlet }: LocationPickerProps)
         setOutletsWithDistance(outletsWithCalculatedDistance);
       } else {
         console.error('Distance calculation failed:', status);
-        setOutletsWithDistance(outlets);
+        // Fallback to direct distance
+        const outletsWithDirectDistance = outlets.map(outlet => ({
+          ...outlet,
+          distance: calculateDirectDistance(userLocation, {
+            lat: outlet.latitude,
+            lng: outlet.longitude
+          }),
+          duration: Math.round(calculateDirectDistance(userLocation, {
+            lat: outlet.latitude,
+            lng: outlet.longitude
+          }) * 3)
+        }));
+        outletsWithDirectDistance.sort((a, b) => a.distance - b.distance);
+        setOutletsWithDistance(outletsWithDirectDistance);
       }
     });
   };
@@ -156,13 +189,13 @@ const LocationPicker = ({ onOutletSelect, selectedOutlet }: LocationPickerProps)
           });
         } else {
           console.error('Geocoding failed:', status);
-          // Fallback to Bangalore coordinates
-          setUserLocation({ lat: 12.9716, lng: 77.5946 });
+          // Fallback to Mumbai coordinates
+          setUserLocation({ lat: 19.0760, lng: 72.8777 });
         }
       });
     } else {
-      // Fallback to Bangalore coordinates
-      setUserLocation({ lat: 12.9716, lng: 77.5946 });
+      // Fallback to Mumbai coordinates
+      setUserLocation({ lat: 19.0760, lng: 72.8777 });
     }
   };
 
@@ -178,9 +211,9 @@ const LocationPicker = ({ onOutletSelect, selectedOutlet }: LocationPickerProps)
         },
         (error) => {
           console.error('Error getting location:', error);
-          // Fallback to Bangalore
-          setUserLocation({ lat: 12.9716, lng: 77.5946 });
-          setSelectedLocation('Bangalore, Karnataka');
+          // Fallback to Mumbai
+          setUserLocation({ lat: 19.0760, lng: 72.8777 });
+          setSelectedLocation('Mumbai, Maharashtra');
         }
       );
     }
@@ -272,9 +305,15 @@ const LocationPicker = ({ onOutletSelect, selectedOutlet }: LocationPickerProps)
         </Card>
       )}
 
-      {!googleMapsLoaded && (
+      {!googleMapsLoaded && businessSettings?.googleMapsApiKey && (
         <div className="text-xs text-gray-500 text-center py-2">
           Loading Google Maps services...
+        </div>
+      )}
+      
+      {!businessSettings?.googleMapsApiKey && (
+        <div className="text-xs text-orange-500 text-center py-2">
+          Google Maps API not configured. Using fallback location search.
         </div>
       )}
     </div>

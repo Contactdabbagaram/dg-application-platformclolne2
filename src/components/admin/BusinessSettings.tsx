@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useBusinessSettings, useUpdateBusinessSettings } from '@/hooks/useBusinessSettings';
+import { toast } from 'sonner';
 import FrontendSettings from './FrontendSettings';
 import SupportManagement from './SupportManagement';
 import { 
@@ -38,11 +40,31 @@ interface BusinessSettingsProps {
 }
 
 const BusinessSettings = ({ onAddOutlet, onBack }: BusinessSettingsProps) => {
+  const { data: businessSettings, isLoading } = useBusinessSettings();
+  const updateSettings = useUpdateBusinessSettings();
+  
   const [googleMapsApiKey, setGoogleMapsApiKey] = useState('');
+  const [distanceMethod, setDistanceMethod] = useState('route');
+  const [businessName, setBusinessName] = useState('');
+  const [businessAddress, setBusinessAddress] = useState('');
+  const [businessPhone, setBusinessPhone] = useState('');
+  const [businessEmail, setBusinessEmail] = useState('');
   const [openSections, setOpenSections] = useState<string[]>(['google-maps']);
   const [primaryColor, setPrimaryColor] = useState('#3B82F6');
   const [secondaryColor, setSecondaryColor] = useState('#EF4444');
   const [logoPreview, setLogoPreview] = useState<string>('');
+
+  // Load settings when data is available
+  useEffect(() => {
+    if (businessSettings) {
+      setGoogleMapsApiKey(businessSettings.googleMapsApiKey || '');
+      setDistanceMethod(businessSettings.distanceCalculationMethod || 'route');
+      setBusinessName(businessSettings.businessName || 'DabbaGaram');
+      setBusinessAddress(businessSettings.businessAddress || '');
+      setBusinessPhone(businessSettings.businessPhone || '');
+      setBusinessEmail(businessSettings.businessEmail || '');
+    }
+  }, [businessSettings]);
 
   const toggleSection = (section: string) => {
     setOpenSections(prev => 
@@ -58,10 +80,24 @@ const BusinessSettings = ({ onAddOutlet, onBack }: BusinessSettingsProps) => {
     { id: 3, name: 'Mike Chen', email: 'mike@dabbagaram.com', role: 'Order Viewer', avatar: '' },
   ];
 
-  const handleSaveSettings = () => {
-    console.log('Saving business settings...');
-    // TODO: Implement actual save functionality
+  const handleSaveSettings = async () => {
+    try {
+      await updateSettings.mutateAsync({
+        googleMapsApiKey,
+        businessName,
+        businessAddress,
+        businessPhone,
+        businessEmail,
+        distanceCalculationMethod: distanceMethod
+      });
+      toast.success('Business settings saved successfully!');
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast.error('Failed to save business settings');
+    }
   };
+
+  const isApiKeyConfigured = googleMapsApiKey && googleMapsApiKey.trim().length > 0;
 
   return (
     <div className="space-y-6">
@@ -82,7 +118,12 @@ const BusinessSettings = ({ onAddOutlet, onBack }: BusinessSettingsProps) => {
               Add Outlet
             </Button>
           )}
-          <Button onClick={handleSaveSettings}>Save Changes</Button>
+          <Button 
+            onClick={handleSaveSettings} 
+            disabled={updateSettings.isPending || isLoading}
+          >
+            {updateSettings.isPending ? 'Saving...' : 'Save Changes'}
+          </Button>
         </div>
       </div>
 
@@ -101,7 +142,12 @@ const BusinessSettings = ({ onAddOutlet, onBack }: BusinessSettingsProps) => {
         <TabsContent value="integrations" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Integrations</CardTitle>
+              <CardTitle className="flex items-center justify-between">
+                <span>Integrations</span>
+                <Badge variant={isApiKeyConfigured ? "default" : "secondary"}>
+                  Google Maps: {isApiKeyConfigured ? "Connected" : "Not Configured"}
+                </Badge>
+              </CardTitle>
               <p className="text-sm text-gray-600">
                 Google Analytics, FB Ads, Google Ads, Google Firebase and native apps.
               </p>
@@ -128,10 +174,13 @@ const BusinessSettings = ({ onAddOutlet, onBack }: BusinessSettingsProps) => {
                       onChange={(e) => setGoogleMapsApiKey(e.target.value)}
                       placeholder="••••••••••••••••••••••••••••••••••••"
                     />
+                    {isApiKeyConfigured && (
+                      <p className="text-xs text-green-600">✓ API Key configured</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label>Distance calculation method</Label>
-                    <Select defaultValue="route">
+                    <Select value={distanceMethod} onValueChange={setDistanceMethod}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
@@ -247,15 +296,28 @@ const BusinessSettings = ({ onAddOutlet, onBack }: BusinessSettingsProps) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="business-name">Business Name</Label>
-                  <Input id="business-name" defaultValue="DabbaGaram" />
+                  <Input 
+                    id="business-name" 
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="contact-email">Contact Email</Label>
-                  <Input id="contact-email" type="email" defaultValue="contact@dabbagaram.com" />
+                  <Input 
+                    id="contact-email" 
+                    type="email" 
+                    value={businessEmail}
+                    onChange={(e) => setBusinessEmail(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="contact-phone">Contact Phone</Label>
-                  <Input id="contact-phone" defaultValue="+91-9876543210" />
+                  <Input 
+                    id="contact-phone" 
+                    value={businessPhone}
+                    onChange={(e) => setBusinessPhone(e.target.value)}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="website">Website</Label>
@@ -263,10 +325,11 @@ const BusinessSettings = ({ onAddOutlet, onBack }: BusinessSettingsProps) => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">Business Description</Label>
+                <Label htmlFor="description">Business Address</Label>
                 <Textarea 
                   id="description" 
-                  defaultValue="Delicious homestyle meals delivered fresh to your doorstep"
+                  value={businessAddress}
+                  onChange={(e) => setBusinessAddress(e.target.value)}
                   rows={3}
                 />
               </div>
