@@ -5,9 +5,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { LogIn } from 'lucide-react';
+import { LogIn, ArrowLeft } from 'lucide-react';
 
-const AdminLogin = () => {
+const UserLogin = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -17,7 +17,7 @@ const AdminLogin = () => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        navigate('/admin');
+        navigate('/');
       }
     };
     checkAuth();
@@ -30,7 +30,7 @@ const AdminLogin = () => {
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/admin`
+          redirectTo: `${window.location.origin}/`
         }
       });
 
@@ -57,19 +57,19 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-blue-500 rounded flex items-center justify-center">
+            <div className="w-10 h-10 bg-orange-500 rounded flex items-center justify-center">
               <span className="text-white font-bold text-lg">D</span>
             </div>
             <span className="text-2xl font-bold text-gray-800">DabbaGaram</span>
           </div>
-          <CardTitle className="text-xl">Admin Login</CardTitle>
-          <p className="text-gray-600">Sign in with Google to access the admin dashboard</p>
+          <CardTitle className="text-xl">User Login</CardTitle>
+          <p className="text-gray-600">Sign in with Google to order delicious food</p>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <Button 
             onClick={handleGoogleLogin} 
             className="w-full" 
@@ -94,10 +94,19 @@ const AdminLogin = () => {
               </div>
             )}
           </Button>
+
+          <Button
+            variant="link"
+            onClick={() => navigate('/')}
+            className="w-full flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to home
+          </Button>
         </CardContent>
       </Card>
     </div>
   );
 };
 
-export default AdminLogin;
+export default UserLogin;

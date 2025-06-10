@@ -12,6 +12,7 @@ import Menu from "./pages/Menu";
 import Support from "./pages/Support";
 import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
+import UserLogin from "./pages/UserLogin";
 import Subscriptions from "./pages/Subscriptions";
 import NotFound from "./pages/NotFound";
 
@@ -38,6 +39,7 @@ const App = () => (
               <Route path="/support" element={<Layout><Support /></Layout>} />
               <Route path="/admin" element={<Admin />} />
               <Route path="/admin/login" element={<AdminLogin />} />
+              <Route path="/login" element={<UserLogin />} />
               <Route path="/subscriptions" element={<Layout><Subscriptions /></Layout>} />
               <Route path="*" element={<Layout><NotFound /></Layout>} />
             </Routes>
