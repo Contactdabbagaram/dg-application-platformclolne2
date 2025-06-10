@@ -1,9 +1,8 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { MapPin, Navigation, AlertCircle } from 'lucide-react';
-import { useBusinessSettings } from '@/hooks/useBusinessSettings';
+import { MapPin, Navigation, AlertCircle, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 interface LocationSearchProps {
   onLocationSelect: (location: string) => void;
@@ -12,20 +11,21 @@ interface LocationSearchProps {
 declare global {
   interface Window {
     google: any;
+    initGoogleMaps: () => void;
   }
 }
+
+const GOOGLE_MAPS_API_KEY = 'AIzaSyASu7HI6LlX0fwcRRfkm4JUbrGtvrJ8c4c';
 
 const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
-  const [apiKeyError, setApiKeyError] = useState(false);
   const [isLoadingMaps, setIsLoadingMaps] = useState(false);
   const autocompleteService = useRef<any>(null);
   const placesService = useRef<any>(null);
-  
-  const { data: businessSettings, isLoading: settingsLoading } = useBusinessSettings();
+  const { toast } = useToast();
 
   // Load Google Maps API
   useEffect(() => {
@@ -37,19 +37,8 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
           return;
         }
 
-        // Get API key from business settings
-        const apiKey = businessSettings?.googleMapsApiKey;
-        
-        if (!apiKey || apiKey.trim() === '') {
-          console.warn('Google Maps API key not configured in business settings');
-          setApiKeyError(true);
-          setIsLoadingMaps(false);
-          return;
-        }
-
-        console.log('Loading Google Maps with API key...');
+        console.log('Loading Google Maps...');
         setIsLoadingMaps(true);
-        setApiKeyError(false);
 
         // Remove any existing Google Maps scripts
         const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
@@ -59,68 +48,116 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
 
         // Load Google Maps script
         const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=initGoogleMaps`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&v=weekly`;
         script.async = true;
         script.defer = true;
         
         // Create global callback
-        (window as any).initGoogleMaps = () => {
+        window.initGoogleMaps = () => {
           console.log('Google Maps loaded successfully');
           initializeServices();
           setIsLoadingMaps(false);
         };
 
-        script.onerror = (error) => {
-          console.error('Error loading Google Maps:', error);
-          setApiKeyError(true);
+        script.onerror = () => {
+          console.error('Error loading Google Maps');
+          toast({
+            title: "Google Maps API Error",
+            description: "The Google Maps API key is not properly configured. Please ensure all required APIs are enabled in the Google Cloud Console.",
+            variant: "destructive",
+          });
+          setIsLoadingMaps(false);
+        };
+
+        // Add error handler for API authorization issues
+        script.onload = () => {
+          if (window.google && window.google.maps) {
+            try {
+              // Test if the API is properly authorized
+              new window.google.maps.places.AutocompleteService();
+              console.log('Google Maps loaded successfully');
+              initializeServices();
+            } catch (error) {
+              console.error('Google Maps API authorization error:', error);
+              toast({
+                title: "API Configuration Error",
+                description: "Please enable Places API, Geocoding API, and Maps JavaScript API in your Google Cloud Console.",
+                variant: "destructive",
+              });
+            }
+          }
           setIsLoadingMaps(false);
         };
 
         document.head.appendChild(script);
       } catch (error) {
         console.error('Error setting up Google Maps:', error);
-        setApiKeyError(true);
+        toast({
+          title: "Error",
+          description: "Could not initialize location search. Please try again later.",
+          variant: "destructive",
+        });
         setIsLoadingMaps(false);
       }
     };
 
-    if (businessSettings && !settingsLoading) {
-      loadGoogleMaps();
-    }
-  }, [businessSettings, settingsLoading]);
+    loadGoogleMaps();
+  }, [toast]);
 
   const initializeServices = () => {
     if (window.google && window.google.maps && window.google.maps.places) {
-      autocompleteService.current = new window.google.maps.places.AutocompleteService();
-      placesService.current = new window.google.maps.places.PlacesService(
-        document.createElement('div')
+      // Initialize the Places service with a map instance
+      const map = new window.google.maps.Map(document.createElement('div'));
+      placesService.current = new window.google.maps.places.PlacesService(map);
+      
+      // Initialize Autocomplete
+      const searchBox = new window.google.maps.places.SearchBox(
+        document.createElement('input'),
+        {
+          componentRestrictions: { country: 'in' },
+          types: ['geocode', 'establishment']
+        }
       );
+      
+      autocompleteService.current = searchBox;
       setGoogleMapsLoaded(true);
-      console.log('Google Maps services initialized');
+      console.log('Google Maps services initialized with new Places API');
     }
   };
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     
-    if (query.length > 2 && googleMapsLoaded && autocompleteService.current) {
+    if (query.length > 2 && googleMapsLoaded && placesService.current) {
       setIsLoading(true);
+      console.log('Searching for:', query);
       
-      autocompleteService.current.getPlacePredictions(
+      // Use textSearch instead of getPlacePredictions
+      placesService.current.textSearch(
         {
-          input: query,
-          types: ['address', 'establishment', 'geocode'],
-          componentRestrictions: { country: 'in' } // Restrict to India
+          query: query,
+          region: 'in'
         },
-        (predictions: any[], status: any) => {
+        (results: any[], status: any) => {
           setIsLoading(false);
+          console.log('Places API response:', { status, results });
           
-          if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
-            setSuggestions(predictions);
-            console.log('Found predictions:', predictions.length);
+          if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
+            const suggestions = results.map(result => ({
+              place_id: result.place_id,
+              description: result.formatted_address || result.name
+            }));
+            setSuggestions(suggestions);
+            console.log('Setting suggestions:', suggestions);
           } else {
             setSuggestions([]);
-            console.log('No predictions found, status:', status);
+            if (status === "ZERO_RESULTS") {
+              toast({
+                title: "No results found",
+                description: "Try a different search term",
+                variant: "default",
+              });
+            }
           }
         }
       );
@@ -132,51 +169,74 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
   const getCurrentLocation = () => {
     setIsLoading(true);
     
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          try {
-            const { latitude, longitude } = position.coords;
+    if (!navigator.geolocation) {
+      toast({
+        title: "Error",
+        description: "Geolocation is not supported by your browser",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          
+          if (googleMapsLoaded && window.google.maps.Geocoder) {
+            const geocoder = new window.google.maps.Geocoder();
+            const latlng = new window.google.maps.LatLng(latitude, longitude);
             
-            if (googleMapsLoaded && window.google.maps.Geocoder) {
-              const geocoder = new window.google.maps.Geocoder();
-              const latlng = new window.google.maps.LatLng(latitude, longitude);
-              
-              geocoder.geocode({ location: latlng }, (results: any[], status: any) => {
-                setIsLoading(false);
-                
-                if (status === 'OK' && results[0]) {
-                  const address = results[0].formatted_address;
-                  setSearchQuery(address);
-                  onLocationSelect(address);
-                } else {
-                  console.error('Geocoding failed:', status);
-                  // Fallback
-                  const mockLocation = 'Current Location - Mumbai, Maharashtra';
-                  setSearchQuery(mockLocation);
-                  onLocationSelect(mockLocation);
-                }
-              });
-            } else {
-              // Fallback when Google Maps not loaded
-              const mockLocation = 'Current Location - Mumbai, Maharashtra';
-              setSearchQuery(mockLocation);
-              onLocationSelect(mockLocation);
+            geocoder.geocode({ location: latlng }, (results: any[], status: any) => {
               setIsLoading(false);
-            }
-          } catch (error) {
-            console.error('Error getting location:', error);
+              
+              if (status === 'OK' && results[0]) {
+                const address = results[0].formatted_address;
+                setSearchQuery(address);
+                onLocationSelect(address);
+                toast({
+                  title: "Location found",
+                  description: "Using your current location",
+                  variant: "default",
+                });
+              } else {
+                console.error('Geocoding failed:', status);
+                toast({
+                  title: "Error",
+                  description: "Could not determine your location",
+                  variant: "destructive",
+                });
+              }
+            });
+          } else {
             setIsLoading(false);
+            toast({
+              title: "Error",
+              description: "Location service is not available",
+              variant: "destructive",
+            });
           }
-        },
-        (error) => {
+        } catch (error) {
           console.error('Error getting location:', error);
           setIsLoading(false);
+          toast({
+            title: "Error",
+            description: "Could not get your location",
+            variant: "destructive",
+          });
         }
-      );
-    } else {
-      setIsLoading(false);
-    }
+      },
+      (error) => {
+        console.error('Geolocation error:', error);
+        setIsLoading(false);
+        toast({
+          title: "Error",
+          description: error.message || "Could not get your location",
+          variant: "destructive",
+        });
+      }
+    );
   };
 
   const handleSuggestionClick = (suggestion: any) => {
@@ -185,8 +245,6 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
     onLocationSelect(address);
     setSuggestions([]);
   };
-
-  const hasApiKey = businessSettings?.googleMapsApiKey && businessSettings.googleMapsApiKey.trim() !== '';
 
   return (
     <div className="w-full max-w-md">
@@ -197,58 +255,46 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
             className="pr-10"
-            disabled={!hasApiKey && googleMapsLoaded}
+            disabled={isLoadingMaps}
           />
-          <MapPin className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          {isLoading && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+            </div>
+          )}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
+        <Button 
+          variant="outline" 
+          size="icon"
           onClick={getCurrentLocation}
-          disabled={isLoading}
+          disabled={isLoadingMaps || isLoading}
         >
           <Navigation className="h-4 w-4" />
         </Button>
       </div>
-      
+
+      {/* Suggestions dropdown */}
       {suggestions.length > 0 && (
-        <div className="bg-white border rounded-md shadow-lg max-h-48 overflow-y-auto z-50 relative">
-          {suggestions.map((suggestion, index) => (
-            <div
-              key={index}
-              className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
-              onClick={() => handleSuggestionClick(suggestion)}
-            >
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-gray-400" />
+        <div className="absolute z-10 w-full max-w-md bg-white rounded-md shadow-lg border mt-1">
+          <ul className="py-1">
+            {suggestions.map((suggestion) => (
+              <li
+                key={suggestion.place_id}
+                className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex items-center gap-2"
+                onClick={() => handleSuggestionClick(suggestion)}
+              >
+                <MapPin className="h-4 w-4 text-gray-500" />
                 <span className="text-sm">{suggestion.description}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-      
-      {!hasApiKey && (
-        <div className="flex items-center gap-2 text-xs text-orange-600 mt-2 p-2 bg-orange-50 rounded border border-orange-200">
-          <AlertCircle className="h-4 w-4" />
-          <span>
-            Google Maps API not configured. Using fallback search. Contact admin for better experience.
-          </span>
-        </div>
-      )}
-      
-      {isLoadingMaps && hasApiKey && (
-        <div className="text-xs text-blue-600 mt-2 p-2 bg-blue-50 rounded border border-blue-200">
-          Loading Google Maps services...
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
-      {apiKeyError && hasApiKey && (
-        <div className="flex items-center gap-2 text-xs text-red-600 mt-2 p-2 bg-red-50 rounded border border-red-200">
-          <AlertCircle className="h-4 w-4" />
-          <span>
-            Google Maps API error. Please check your API key configuration.
-          </span>
+      {isLoadingMaps && (
+        <div className="flex items-center gap-2 text-sm text-gray-500 mt-2">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Loading location service...</span>
         </div>
       )}
     </div>
