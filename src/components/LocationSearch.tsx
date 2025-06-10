@@ -130,7 +130,6 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
     
     if (query.length > 2 && googleMapsLoaded && placesService.current) {
       setIsLoading(true);
-      console.log('Searching for:', query);
       
       // Use textSearch instead of getPlacePredictions
       placesService.current.textSearch(
@@ -140,7 +139,6 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
         },
         (results: any[], status: any) => {
           setIsLoading(false);
-          console.log('Places API response:', { status, results });
           
           if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
             const suggestions = results.map(result => ({
@@ -148,7 +146,6 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
               description: result.formatted_address || result.name
             }));
             setSuggestions(suggestions);
-            console.log('Setting suggestions:', suggestions);
           } else {
             setSuggestions([]);
             if (status === "ZERO_RESULTS") {
