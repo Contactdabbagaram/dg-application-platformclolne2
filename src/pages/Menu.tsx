@@ -1,17 +1,15 @@
 
 import { useState, useEffect, Suspense } from 'react';
-import AssistiveTouch from '@/components/AssistiveTouch';
 import MenuCategories from '@/components/MenuCategories';
 import MenuItemCard from '@/components/MenuItemCard';
 import LocationPicker from '@/components/LocationPicker';
 import MenuSkeleton from '@/components/skeletons/MenuSkeleton';
 import { useMenuItems, MenuItem, OutletWithDistance } from '@/hooks/useMenu';
-import { useBusinessSettings } from '@/hooks/useBusinessSettings';
 import { useRestaurant } from '@/contexts/RestaurantContext';
 import { usePageTransition } from '@/contexts/PageTransitionContext';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
-import { MapPin, Filter, AlertCircle } from 'lucide-react';
+import { MapPin, Filter } from 'lucide-react';
 
 const Menu = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -25,7 +23,6 @@ const Menu = () => {
     selectedCategory || undefined, 
     selectedOutlet?.restaurant_id || currentRestaurant?.id
   );
-  const { data: businessSettings } = useBusinessSettings();
 
   // End transition when component is ready
   useEffect(() => {
@@ -75,8 +72,6 @@ const Menu = () => {
     return <MenuSkeleton />;
   }
 
-  const hasGoogleMapsApi = businessSettings?.googleMapsApiKey && businessSettings.googleMapsApiKey.trim() !== '';
-
   return (
     <div className="min-h-screen bg-gray-50 animate-fade-in">
       {/* Hero Section with Dynamic Category Image */}
@@ -121,24 +116,6 @@ const Menu = () => {
           </Sheet>
         </div>
       </div>
-
-      {/* Google Maps API Status */}
-      {!hasGoogleMapsApi && (
-        <div className="mx-4 mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-5 w-5 text-yellow-600" />
-            <div>
-              <p className="text-yellow-800 font-medium">
-                Enhanced Location Services Unavailable
-              </p>
-              <p className="text-yellow-700 text-sm mt-1">
-                Google Maps API is not configured. Location search is using basic functionality. 
-                Configure the API key in admin settings for better location search and accurate delivery estimates.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Menu Categories */}
       <div className="mb-8">
@@ -193,8 +170,6 @@ const Menu = () => {
           </div>
         )}
       </div>
-
-      <AssistiveTouch />
     </div>
   );
 };
