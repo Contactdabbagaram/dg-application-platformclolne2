@@ -1,14 +1,17 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Menu, X, ShoppingCart, Phone, MapPin } from 'lucide-react';
+import { Menu, X, ShoppingCart, Phone, MapPin, User, LogOut } from 'lucide-react';
 import { useFrontendSettings } from '@/hooks/useFrontendSettings';
 import { useRestaurant } from '@/contexts/RestaurantContext';
 import { useSmoothNavigation } from '@/hooks/useSmoothNavigation';
+import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [user, setUser] = useState(null);
   const { currentRestaurant } = useRestaurant();
   const restaurantId = currentRestaurant?.id || '';
   const { settings } = useFrontendSettings(restaurantId);
@@ -29,6 +32,30 @@ const Navbar = () => {
     { id: 'menu', label: 'Menu', url: '/menu', order: 2 },
     { id: 'support', label: 'Support', url: '/support', order: 3 }
   ];
+
+  // Check authentication state
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setUser(session?.user ?? null);
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogin = () => {
+    smoothNavigate('/login');
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+  };
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -64,9 +91,36 @@ const Navbar = () => {
               </div>
             </div>
             <div className="flex items-center space-x-2">
-              <Badge variant="secondary" className="bg-white/90 text-indigo-600">
-                {orderCutoffText}
-              </Badge>
+              {user ? (
+                <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1">
+                    <User className="h-4 w-4" />
+                    <span className="hidden sm:inline">{user.email}</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="text-white hover:bg-white/10 p-1"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  <Badge variant="secondary" className="bg-white/90 text-indigo-600 hidden sm:block">
+                    {orderCutoffText}
+                  </Badge>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLogin}
+                    className="text-white hover:bg-white/10"
+                  >
+                    Login
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -163,6 +217,37 @@ const Navbar = () => {
                 {item.label}
               </button>
             ))}
+            
+            {/* Mobile Auth Section */}
+            {user ? (
+              <div className="px-3 py-2 border-t">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <User className="h-4 w-4" />
+                    <span className="text-sm">{user.email}</span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="text-red-600"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="px-3 py-2 border-t">
+                <Button 
+                  onClick={handleLogin}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Login
+                </Button>
+              </div>
+            )}
+            
             <div className="flex items-center space-x-4 px-3 py-2">
               {showCartButton && (
                 <Button variant="ghost" size="sm" className="relative" onClick={handleCartClick}>
