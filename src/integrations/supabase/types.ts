@@ -216,6 +216,7 @@ export type Database = {
           hero_front_images: string[] | null
           hero_subtitle: string | null
           hero_title: string | null
+          homepage_theme: string | null
           id: string
           instagram_url: string | null
           logo_url: string | null
@@ -291,6 +292,7 @@ export type Database = {
           hero_front_images?: string[] | null
           hero_subtitle?: string | null
           hero_title?: string | null
+          homepage_theme?: string | null
           id?: string
           instagram_url?: string | null
           logo_url?: string | null
@@ -366,6 +368,7 @@ export type Database = {
           hero_front_images?: string[] | null
           hero_subtitle?: string | null
           hero_title?: string | null
+          homepage_theme?: string | null
           id?: string
           instagram_url?: string | null
           logo_url?: string | null
