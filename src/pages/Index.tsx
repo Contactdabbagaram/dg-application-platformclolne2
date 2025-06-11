@@ -1,6 +1,9 @@
 
 import { useEffect, Suspense } from 'react';
 import Hero from '@/components/Hero';
+import PromotionalBanners from '@/components/themes/PromotionalBanners';
+import FeaturedCategories from '@/components/themes/FeaturedCategories';
+import MinimalHero from '@/components/themes/MinimalHero';
 import Testimonials from '@/components/Testimonials';
 import Footer from '@/components/Footer';
 import HeroSkeleton from '@/components/skeletons/HeroSkeleton';
@@ -76,11 +79,30 @@ const Index = () => {
     return <HeroSkeleton />;
   }
 
+  // Determine which theme component to render
+  const selectedTheme = settings?.homepage_theme || 'classic';
+  
+  const renderThemeComponent = () => {
+    switch (selectedTheme) {
+      case 'promotional':
+        return <PromotionalBanners />;
+      case 'categories':
+        return <FeaturedCategories />;
+      case 'minimal':
+        return <MinimalHero />;
+      case 'classic':
+      default:
+        return (
+          <Suspense fallback={<HeroSkeleton />}>
+            <Hero />
+          </Suspense>
+        );
+    }
+  };
+
   return (
     <div className="animate-fade-in">
-      <Suspense fallback={<HeroSkeleton />}>
-        <Hero />
-      </Suspense>
+      {renderThemeComponent()}
       <Testimonials />
       <Footer />
     </div>

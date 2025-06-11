@@ -74,6 +74,7 @@ export interface FrontendSettings {
   cart_button_url?: string;
   navigation_menu?: any;
   enable_live_preview?: boolean;
+  homepage_theme?: string; // New field for homepage theme
 }
 
 export const useFrontendSettings = (restaurantId: string) => {

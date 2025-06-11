@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,7 @@ import ImageUpload from './ImageUpload';
 import HeroSettings from './HeroSettings';
 import ThemeSettings from './ThemeSettings';
 import NavigationSettings from './NavigationSettings';
+import ThemeSelector from './ThemeSelector';
 import { 
   Save,
   Loader2,
@@ -23,7 +23,8 @@ import {
   Globe,
   Star,
   Navigation,
-  Eye
+  Eye,
+  Layout
 } from 'lucide-react';
 
 const FrontendSettings = () => {
@@ -39,7 +40,7 @@ const FrontendSettings = () => {
     if (settings) {
       setLocalSettings(settings);
     } else if (!loading && restaurantId) {
-      // Initialize with comprehensive default values
+      // Initialize with comprehensive default values including homepage_theme
       setLocalSettings({
         business_name: 'DabbaGaram Restaurant',
         hero_title: 'Fresh Homestyle Meals Delivered',
@@ -96,7 +97,8 @@ const FrontendSettings = () => {
           { id: 'menu', label: 'Menu', url: '/menu', order: 2 },
           { id: 'support', label: 'Support', url: '/support', order: 3 }
         ],
-        enable_live_preview: true
+        enable_live_preview: true,
+        homepage_theme: 'classic' // Default theme
       });
     }
   }, [settings, loading, restaurantId]);
@@ -155,8 +157,12 @@ const FrontendSettings = () => {
         </Button>
       </div>
 
-      <Tabs defaultValue="hero" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-6">
+      <Tabs defaultValue="themes" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-7">
+          <TabsTrigger value="themes" className="flex items-center gap-2">
+            <Layout className="h-4 w-4" />
+            Themes
+          </TabsTrigger>
           <TabsTrigger value="hero" className="flex items-center gap-2">
             <ImageIcon className="h-4 w-4" />
             Hero
@@ -167,7 +173,7 @@ const FrontendSettings = () => {
           </TabsTrigger>
           <TabsTrigger value="theme" className="flex items-center gap-2">
             <Palette className="h-4 w-4" />
-            Theme
+            Colors
           </TabsTrigger>
           <TabsTrigger value="content" className="flex items-center gap-2">
             <Type className="h-4 w-4" />
@@ -182,6 +188,13 @@ const FrontendSettings = () => {
             SEO
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="themes">
+          <ThemeSelector
+            selectedTheme={localSettings.homepage_theme || 'classic'}
+            onThemeChange={(theme) => handleInputChange('homepage_theme', theme)}
+          />
+        </TabsContent>
 
         <TabsContent value="hero">
           <HeroSettings settings={localSettings} onSettingsChange={handleInputChange} />
