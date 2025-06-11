@@ -1,5 +1,5 @@
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useMemo } from 'react';
 import MenuCategories from '@/components/MenuCategories';
 import MenuItemCard from '@/components/MenuItemCard';
 import LocationPicker from '@/components/LocationPicker';
@@ -19,10 +19,19 @@ const Menu = () => {
 
   const { currentRestaurant } = useRestaurant();
   const { endTransition } = usePageTransition();
-  const { data: menuItems, isLoading } = useMenuItems(
-    selectedCategory || undefined, 
+  
+  // Fetch ALL menu items without category filter for client-side filtering
+  const { data: allMenuItems, isLoading } = useMenuItems(
+    undefined, // No category filter - get all items
     selectedOutlet?.restaurant_id || currentRestaurant?.id
   );
+
+  // Client-side filtering based on selected category
+  const filteredMenuItems = useMemo(() => {
+    if (!allMenuItems) return [];
+    if (!selectedCategory) return allMenuItems;
+    return allMenuItems.filter(item => item.category_id === selectedCategory);
+  }, [allMenuItems, selectedCategory]);
 
   // End transition when component is ready
   useEffect(() => {
@@ -146,9 +155,9 @@ const Menu = () => {
 
       {/* Menu Items Grid */}
       <div className="px-4">
-        {menuItems && menuItems.length > 0 ? (
+        {filteredMenuItems && filteredMenuItems.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {menuItems.map((item) => (
+            {filteredMenuItems.map((item) => (
               <MenuItemCard
                 key={item.id}
                 item={item}
