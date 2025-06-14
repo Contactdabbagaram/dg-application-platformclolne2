@@ -52,7 +52,7 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
   const [maxDeliveryDistance, setMaxDeliveryDistance] = useState(10);
   const [estimatedDeliveryTime, setEstimatedDeliveryTime] = useState(30);
 
-  // Editable fields
+  // Editable fields - removed description since it doesn't exist in outlets table
   const [editableFields, setEditableFields] = useState({
     name: '',
     store_code: '',
@@ -64,8 +64,7 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
     min_order_amount: 0,
     is_active: true,
     latitude: 0,
-    longitude: 0,
-    description: ''
+    longitude: 0
   });
 
   // Load outlet data
@@ -93,8 +92,7 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
           min_order_amount: data.min_order_amount || 0,
           is_active: data.is_active || true,
           latitude: data.latitude || 0,
-          longitude: data.longitude || 0,
-          description: data.description || ''
+          longitude: data.longitude || 0
         });
 
         setServiceAreaType((data.service_area_type as 'radius' | 'geofence') || 'radius');
@@ -319,17 +317,6 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
                             onChange={(e) => handleFieldChange('store_code', e.target.value)}
                           />
                         </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Label htmlFor="description">Description</Label>
-                        <Textarea 
-                          id="description" 
-                          value={editableFields.description}
-                          onChange={(e) => handleFieldChange('description', e.target.value)}
-                          className="min-h-[100px]"
-                          placeholder="Enter store description"
-                        />
                       </div>
                       
                       <div className="flex items-center justify-between">
