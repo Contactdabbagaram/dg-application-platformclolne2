@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import GeofenceMap from './GeofenceMap';
+import { GeofencePoint } from '@/utils/locationUtils';
 import { 
   ChevronDown, 
   ChevronUp, 
@@ -22,7 +26,9 @@ import {
   Key,
   CheckCircle,
   AlertCircle,
-  ShoppingBag
+  ShoppingBag,
+  Shield,
+  Globe
 } from 'lucide-react';
 
 interface OutletSettingsProps {
@@ -34,6 +40,49 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
   const [openSections, setOpenSections] = useState<string[]>(['basic']);
   const [petpoojaConnected, setPetpoojaConnected] = useState(true);
   const [lastSync, setLastSync] = useState('2 hours ago');
+  const [outletData, setOutletData] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  // Service area settings
+  const [serviceAreaType, setServiceAreaType] = useState<'radius' | 'geofence'>('radius');
+  const [deliveryRadius, setDeliveryRadius] = useState(10);
+  const [geofenceEnabled, setGeofenceEnabled] = useState(false);
+  const [geofenceCoordinates, setGeofenceCoordinates] = useState<GeofencePoint[]>([]);
+  const [maxDeliveryDistance, setMaxDeliveryDistance] = useState(10);
+  const [estimatedDeliveryTime, setEstimatedDeliveryTime] = useState(30);
+
+  // Load outlet data
+  useEffect(() => {
+    const loadOutletData = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('outlets')
+          .select('*')
+          .eq('name', outletName)
+          .single();
+
+        if (error) throw error;
+
+        setOutletData(data);
+        setServiceAreaType(data.service_area_type || 'radius');
+        setDeliveryRadius(data.delivery_radius_km || 10);
+        setGeofenceEnabled(data.geofence_enabled || false);
+        setGeofenceCoordinates(data.geofence_coordinates || []);
+        setMaxDeliveryDistance(data.max_delivery_distance_km || 10);
+        setEstimatedDeliveryTime(data.estimated_delivery_time_minutes || 30);
+      } catch (error) {
+        console.error('Error loading outlet data:', error);
+        toast({
+          title: 'Error',
+          description: 'Failed to load outlet data',
+          variant: 'destructive'
+        });
+      }
+    };
+
+    loadOutletData();
+  }, [outletName, toast]);
 
   const toggleSection = (section: string) => {
     setOpenSections(prev => 
@@ -43,9 +92,46 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
     );
   };
 
+  const saveServiceAreaSettings = async () => {
+    if (!outletData) return;
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('outlets')
+        .update({
+          service_area_type: serviceAreaType,
+          delivery_radius_km: deliveryRadius,
+          geofence_enabled: geofenceEnabled,
+          geofence_coordinates: geofenceCoordinates,
+          max_delivery_distance_km: maxDeliveryDistance,
+          estimated_delivery_time_minutes: estimatedDeliveryTime,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', outletData.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Success',
+        description: 'Service area settings updated successfully'
+      });
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save service area settings',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const sectionConfig = [
     { id: 'basic', title: 'Basic Details', icon: Settings },
     { id: 'address', title: 'Store Address', icon: MapPin },
+    { id: 'service-area', title: 'Service Area & Geofencing', icon: Shield },
     { id: 'ordering', title: 'Ordering', icon: Package },
     { id: 'payments', title: 'Payments', icon: CreditCard },
     { id: 'menu-automation', title: 'Menu Automation', icon: RefreshCw },
@@ -79,6 +165,7 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
               <Card className="mt-2">
                 <CardContent className="p-6">
                   {section.id === 'basic' && (
+                    
                     <div className="space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -108,6 +195,7 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
                   )}
 
                   {section.id === 'address' && (
+                    
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="address">Complete Address</Label>
@@ -135,26 +223,123 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="latitude">Latitude</Label>
-                          <Input id="latitude" defaultValue="19.1568" />
+                          <Input id="latitude" defaultValue={outletData?.latitude || "19.1568"} />
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="longitude">Longitude</Label>
-                          <Input id="longitude" defaultValue="72.9940" />
+                          <Input id="longitude" defaultValue={outletData?.longitude || "72.9940"} />
                         </div>
                       </div>
                     </div>
                   )}
 
+                  {section.id === 'service-area' && (
+                    <div className="space-y-6">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <h4 className="font-medium text-blue-900 mb-2">Service Area Configuration</h4>
+                        <p className="text-sm text-blue-800">
+                          Define your delivery boundaries using either a simple radius or a custom geofence polygon. 
+                          Customers outside this area will see your menu but cannot place orders.
+                        </p>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <Label>Service Area Type</Label>
+                          <Select value={serviceAreaType} onValueChange={(value: 'radius' | 'geofence') => setServiceAreaType(value)}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="radius">
+                                <div className="flex items-center gap-2">
+                                  <Globe className="h-4 w-4" />
+                                  <span>Radius - Simple circular delivery area</span>
+                                </div>
+                              </SelectItem>
+                              <SelectItem value="geofence">
+                                <div className="flex items-center gap-2">
+                                  <Shield className="h-4 w-4" />
+                                  <span>Geofence - Custom polygon boundary</span>
+                                </div>
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="delivery-radius">Delivery Radius (km)</Label>
+                            <Input
+                              id="delivery-radius"
+                              type="number"
+                              value={deliveryRadius}
+                              onChange={(e) => setDeliveryRadius(parseFloat(e.target.value) || 0)}
+                              min="0"
+                              step="0.1"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="max-distance">Max Distance (km)</Label>
+                            <Input
+                              id="max-distance"
+                              type="number"
+                              value={maxDeliveryDistance}
+                              onChange={(e) => setMaxDeliveryDistance(parseFloat(e.target.value) || 0)}
+                              min="0"
+                              step="0.1"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="delivery-time">Base Delivery Time (min)</Label>
+                            <Input
+                              id="delivery-time"
+                              type="number"
+                              value={estimatedDeliveryTime}
+                              onChange={(e) => setEstimatedDeliveryTime(parseInt(e.target.value) || 30)}
+                              min="10"
+                            />
+                          </div>
+                        </div>
+
+                        {serviceAreaType === 'geofence' && (
+                          <div className="flex items-center justify-between">
+                            <Label htmlFor="geofence-enabled">Enable Geofence</Label>
+                            <Switch
+                              id="geofence-enabled"
+                              checked={geofenceEnabled}
+                              onCheckedChange={setGeofenceEnabled}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      <GeofenceMap
+                        outletLatitude={outletData?.latitude || 19.1568}
+                        outletLongitude={outletData?.longitude || 72.9940}
+                        geofenceCoordinates={geofenceCoordinates}
+                        deliveryRadius={deliveryRadius}
+                        onGeofenceChange={setGeofenceCoordinates}
+                        onRadiusChange={setDeliveryRadius}
+                        serviceAreaType={serviceAreaType}
+                      />
+
+                      <div className="flex gap-2">
+                        <Button onClick={saveServiceAreaSettings} disabled={loading}>
+                          {loading ? 'Saving...' : 'Save Service Area Settings'}
+                        </Button>
+                        <Button variant="outline">Test Location</Button>
+                      </div>
+                    </div>
+                  )}
+
                   {section.id === 'ordering' && (
+                    
                     <div className="space-y-6">
                       {/* Service Area & Delivery Modes */}
                       <div>
                         <h4 className="text-lg font-medium mb-4">Service Area & Modes</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="delivery-radius">Delivery Radius (km)</Label>
-                            <Input id="delivery-radius" type="number" defaultValue="10" />
-                          </div>
                           <div className="space-y-2">
                             <Label htmlFor="service-type">Service Type</Label>
                             <Select defaultValue="both">
@@ -224,6 +409,7 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
                   )}
 
                   {section.id === 'payments' && (
+                    
                     <div className="space-y-6">
                       <div>
                         <h4 className="text-lg font-medium mb-4">Payment Methods</h4>
@@ -272,6 +458,7 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
                   )}
 
                   {section.id === 'menu-automation' && (
+                    
                     <div className="space-y-6">
                       {/* Petpooja Connection Status */}
                       <div className="p-4 border rounded-lg">
@@ -306,161 +493,6 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
                             <p>Last sync: {lastSync}</p>
                           </div>
                         )}
-                      </div>
-
-                      {/* Sync Controls */}
-                      <div>
-                        <h4 className="text-lg font-medium mb-4">Sync Controls</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <Card>
-                            <CardContent className="p-4">
-                              <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-2">
-                                  <Package className="h-5 w-5 text-blue-600" />
-                                  <span className="font-medium">Menu Sync</span>
-                                </div>
-                                <Switch defaultChecked />
-                              </div>
-                              <p className="text-sm text-gray-600 mb-3">
-                                Automatically sync menu items, categories, and pricing from Petpooja
-                              </p>
-                              <Button size="sm" variant="outline" className="w-full">
-                                <RefreshCw className="h-4 w-4 mr-2" />
-                                Sync Now
-                              </Button>
-                            </CardContent>
-                          </Card>
-
-                          <Card>
-                            <CardContent className="p-4">
-                              <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-2">
-                                  <ShoppingBag className="h-5 w-5 text-green-600" />
-                                  <span className="font-medium">Order Push</span>
-                                </div>
-                                <Switch defaultChecked />
-                              </div>
-                              <p className="text-sm text-gray-600 mb-3">
-                                Push incoming orders to Petpooja for kitchen management
-                              </p>
-                              <Button size="sm" variant="outline" className="w-full">
-                                <RefreshCw className="h-4 w-4 mr-2" />
-                                Test Push
-                              </Button>
-                            </CardContent>
-                          </Card>
-                        </div>
-                      </div>
-
-                      {/* Sync Settings */}
-                      <div>
-                        <h4 className="text-lg font-medium mb-4">Sync Settings</h4>
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="sync-interval">Auto Sync Interval</Label>
-                              <Select defaultValue="15">
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="5">Every 5 minutes</SelectItem>
-                                  <SelectItem value="15">Every 15 minutes</SelectItem>
-                                  <SelectItem value="30">Every 30 minutes</SelectItem>
-                                  <SelectItem value="60">Every hour</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="sync-time">Sync Active Hours</Label>
-                              <Select defaultValue="business">
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="always">24/7</SelectItem>
-                                  <SelectItem value="business">Business hours only</SelectItem>
-                                  <SelectItem value="custom">Custom hours</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-
-                          <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                              <Label htmlFor="sync-prices">Sync Prices</Label>
-                              <Switch id="sync-prices" defaultChecked />
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <Label htmlFor="sync-availability">Sync Item Availability</Label>
-                              <Switch id="sync-availability" defaultChecked />
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <Label htmlFor="sync-categories">Sync Categories</Label>
-                              <Switch id="sync-categories" defaultChecked />
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <Label htmlFor="order-status-update">Order Status Updates</Label>
-                              <Switch id="order-status-update" defaultChecked />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* API Configuration */}
-                      <div>
-                        <h4 className="text-lg font-medium mb-4">API Configuration</h4>
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="petpooja-url">Petpooja API URL</Label>
-                              <Input 
-                                id="petpooja-url" 
-                                defaultValue="https://api.petpooja.com/v1" 
-                                placeholder="API endpoint URL"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="restaurant-id">Restaurant ID</Label>
-                              <Input 
-                                id="restaurant-id" 
-                                defaultValue="DG_AIROLI_001" 
-                                placeholder="Your restaurant ID"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="api-token">API Token</Label>
-                              <div className="flex gap-2">
-                                <Input 
-                                  id="api-token" 
-                                  type="password" 
-                                  defaultValue="••••••••••••••••••••"
-                                  placeholder="Your API token"
-                                />
-                                <Button size="sm" variant="outline">
-                                  <Key className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="webhook-url">Webhook URL</Label>
-                              <Input 
-                                id="webhook-url" 
-                                defaultValue="https://dabbagaram.com/api/petpooja/webhook" 
-                                placeholder="Webhook endpoint"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="flex gap-2">
-                            <Button variant="outline">Test Connection</Button>
-                            <Button variant="outline">Regenerate Token</Button>
-                            <Button>Save Configuration</Button>
-                          </div>
-                        </div>
                       </div>
                     </div>
                   )}
