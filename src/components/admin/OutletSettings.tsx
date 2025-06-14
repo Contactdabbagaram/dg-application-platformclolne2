@@ -31,6 +31,7 @@ import {
   Shield,
   Globe
 } from 'lucide-react';
+import PetpoojaSettings from './PetpoojaSettings';
 
 interface OutletSettingsProps {
   outletName: string;
@@ -135,7 +136,12 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
   return (
     <div className="space-y-4">
       <h2 className="text-2xl font-bold">Store Settings - {outletName}</h2>
-      
+      {/* error handling for outletData */}
+      {outletData === null && (
+        <div className="p-4 bg-red-50 border border-red-300 rounded text-red-700 mb-4">
+          Failed to load outlet data. Please check that the outlet exists in the database and reload this page.
+        </div>
+      )}
       {sectionConfig.map((section) => {
         const Icon = section.icon;
         const isOpen = openSections.includes(section.id);
@@ -451,41 +457,10 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
                   )}
 
                   {section.id === 'menu-automation' && (
-                    
                     <div className="space-y-6">
-                      {/* Petpooja Connection Status */}
-                      <div className="p-4 border rounded-lg">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-                              <Package className="h-5 w-5 text-orange-600" />
-                            </div>
-                            <div>
-                              <h4 className="font-medium">Petpooja Integration</h4>
-                              <p className="text-sm text-gray-600">Menu and order management</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {petpoojaConnected ? (
-                              <>
-                                <CheckCircle className="h-5 w-5 text-green-600" />
-                                <Badge className="bg-green-100 text-green-800">Connected</Badge>
-                              </>
-                            ) : (
-                              <>
-                                <AlertCircle className="h-5 w-5 text-red-600" />
-                                <Badge variant="destructive">Disconnected</Badge>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                        
-                        {petpoojaConnected && (
-                          <div className="text-sm text-gray-600">
-                            <p>Restaurant ID: DG_AIROLI_001</p>
-                            <p>Last sync: {lastSync}</p>
-                          </div>
-                        )}
+                      {/* Use new PetpoojaSettings component */}
+                      <div>
+                        <PetpoojaSettings outletId={outletData?.id} />
                       </div>
                     </div>
                   )}
