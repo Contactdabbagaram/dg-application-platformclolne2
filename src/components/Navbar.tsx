@@ -82,7 +82,7 @@ const Navbar = () => {
         <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-1 text-xs sm:text-sm">
           {/* Left: Location Search */}
           <div className="flex items-center">
-            <LocationSearch />
+            <LocationSearch onLocationSelect={() => {}} />
           </div>
           {/* Right: Login/User */}
           <div className="flex items-center space-x-2">

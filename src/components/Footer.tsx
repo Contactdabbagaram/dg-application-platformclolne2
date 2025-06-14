@@ -11,9 +11,12 @@ const Footer = () => {
   const businessName = settings?.business_name || 'DabbaGaram';
   const footerAbout = settings?.footer_about || 'DabbaGaram brings you the finest homestyle meals prepared with fresh ingredients and traditional recipes.';
   const copyrightText = settings?.copyright_text || '© 2024 DabbaGaram. All rights reserved.';
-  const contactPhone = settings?.contact_phone || '+91-9876543210';
-  const contactEmail = settings?.contact_email || 'contact@dabbagaram.com';
-  const contactAddress = settings?.contact_address || '123 Food Street, Mumbai, Maharashtra 400001, India';
+  
+  // Since contact_phone, contact_email, and contact_address are removed,
+  // Use fallback defaults here (were always optional for settings before)
+  const contactPhone = '+91-9876543210';
+  const contactEmail = 'contact@dabbagaram.com';
+  const contactAddress = '123 Food Street, Mumbai, Maharashtra 400001, India';
   const facebookUrl = settings?.facebook_url;
   const instagramUrl = settings?.instagram_url;
   const twitterUrl = settings?.twitter_url;
