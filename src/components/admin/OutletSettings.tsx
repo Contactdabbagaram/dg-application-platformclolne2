@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -65,9 +66,9 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
         if (error) throw error;
 
         setOutletData(data);
-        setServiceAreaType(data.service_area_type || 'radius');
+        setServiceAreaType((data.service_area_type as 'radius' | 'geofence') || 'radius');
         setDeliveryRadius(data.delivery_radius_km || 10);
-        setGeofenceCoordinates(data.geofence_coordinates || []);
+        setGeofenceCoordinates((data.geofence_coordinates as GeofencePoint[]) || []);
         setMaxDeliveryDistance(data.max_delivery_distance_km || 10);
         setEstimatedDeliveryTime(data.estimated_delivery_time_minutes || 30);
       } catch (error) {

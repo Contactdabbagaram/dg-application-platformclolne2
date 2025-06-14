@@ -26,7 +26,7 @@ export const validateLocationInServiceArea = async (
 
     if (outlet.service_area_type === 'geofence' && Array.isArray(outlet.geofence_coordinates) && outlet.geofence_coordinates.length > 2) {
       const customerPoint = { lat: customerLat, lng: customerLng };
-      const isInServiceArea = isPointInPolygon(customerPoint, outlet.geofence_coordinates as GeofencePoint[]);
+      const isInServiceArea = isPointInPolygon(customerPoint, outlet.geofence_coordinates as unknown as GeofencePoint[]);
       return { data: isInServiceArea, error: null };
     }
     
@@ -81,7 +81,7 @@ export const findNearestOutletsDB = async (
 
       let isInServiceArea = false;
       if (outlet.service_area_type === 'geofence' && Array.isArray(outlet.geofence_coordinates) && outlet.geofence_coordinates.length > 2) {
-        isInServiceArea = isPointInPolygon({ lat: customerLat, lng: customerLng }, outlet.geofence_coordinates as GeofencePoint[]);
+        isInServiceArea = isPointInPolygon({ lat: customerLat, lng: customerLng }, outlet.geofence_coordinates as unknown as GeofencePoint[]);
       } else {
         const deliveryRadius = outlet.delivery_radius_km || 10.0;
         isInServiceArea = distance <= deliveryRadius;
