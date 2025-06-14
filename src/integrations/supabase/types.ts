@@ -196,11 +196,9 @@ export type Database = {
           cart_button_url: string | null
           contact_address: string | null
           contact_email: string | null
-          contact_phone: string | null
           copyright_text: string | null
           created_at: string | null
           default_menu_item_image_url: string | null
-          delivery_radius_text: string | null
           enable_live_preview: boolean | null
           facebook_url: string | null
           favicon_url: string | null
@@ -228,7 +226,6 @@ export type Database = {
           og_description: string | null
           og_image_url: string | null
           og_title: string | null
-          order_cutoff_text: string | null
           popular_badge_text: string | null
           primary_button_bg_color: string | null
           primary_button_text_color: string | null
@@ -272,11 +269,9 @@ export type Database = {
           cart_button_url?: string | null
           contact_address?: string | null
           contact_email?: string | null
-          contact_phone?: string | null
           copyright_text?: string | null
           created_at?: string | null
           default_menu_item_image_url?: string | null
-          delivery_radius_text?: string | null
           enable_live_preview?: boolean | null
           facebook_url?: string | null
           favicon_url?: string | null
@@ -304,7 +299,6 @@ export type Database = {
           og_description?: string | null
           og_image_url?: string | null
           og_title?: string | null
-          order_cutoff_text?: string | null
           popular_badge_text?: string | null
           primary_button_bg_color?: string | null
           primary_button_text_color?: string | null
@@ -348,11 +342,9 @@ export type Database = {
           cart_button_url?: string | null
           contact_address?: string | null
           contact_email?: string | null
-          contact_phone?: string | null
           copyright_text?: string | null
           created_at?: string | null
           default_menu_item_image_url?: string | null
-          delivery_radius_text?: string | null
           enable_live_preview?: boolean | null
           facebook_url?: string | null
           favicon_url?: string | null
@@ -380,7 +372,6 @@ export type Database = {
           og_description?: string | null
           og_image_url?: string | null
           og_title?: string | null
-          order_cutoff_text?: string | null
           popular_badge_text?: string | null
           primary_button_bg_color?: string | null
           primary_button_text_color?: string | null

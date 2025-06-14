@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Menu, X, ShoppingCart, Phone, MapPin, User, LogOut } from 'lucide-react';
+import { Menu, X, ShoppingCart, User, LogOut } from 'lucide-react';
 import { useFrontendSettings } from '@/hooks/useFrontendSettings';
 import { useRestaurant } from '@/contexts/RestaurantContext';
 import { useSmoothNavigation } from '@/hooks/useSmoothNavigation';
 import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
+import LocationSearch from '@/components/LocationSearch';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -17,9 +18,6 @@ const Navbar = () => {
   const { smoothNavigate } = useSmoothNavigation();
 
   const businessName = settings?.business_name || 'DabbaGaram';
-  const contactPhone = settings?.contact_phone || '+91-9876543210';
-  const deliveryRadiusText = settings?.delivery_radius_text || 'Free delivery within 5km';
-  const orderCutoffText = settings?.order_cutoff_text || 'Order before 8 PM for same-day delivery';
   const headerBarColor = settings?.header_bar_color || '#6366F1';
   const primaryButtonBgColor = settings?.primary_button_bg_color || '#6366F1';
   const primaryButtonTextColor = settings?.primary_button_text_color || '#FFFFFF';
@@ -32,19 +30,15 @@ const Navbar = () => {
     { id: 'support', label: 'Support', url: '/support', order: 3 }
   ];
 
-  // Check authentication state
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setUser(session?.user ?? null);
       }
     );
-
-    // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
@@ -75,7 +69,7 @@ const Navbar = () => {
 
   return (
     <nav className="bg-white shadow-lg sticky top-0 z-50">
-      {/* Top Row - Header Bar */}
+      {/* Top Row - New Layout */}
       <div
         className="w-full"
         style={{
@@ -84,25 +78,18 @@ const Navbar = () => {
           transition: 'background-color 0.3s',
         }}
       >
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between px-4 py-1 text-xs sm:text-sm">
-          <div className="flex items-center space-x-2 sm:space-x-4">
-            <Phone className="h-4 w-4 inline opacity-70" />
-            <span>{contactPhone}</span>
-            <span className="hidden sm:inline opacity-60">|</span>
-            <MapPin className="h-4 w-4 inline opacity-70 ml-2 sm:ml-0" />
-            <span>{deliveryRadiusText}</span>
+        {/* Content Row -- flex-row: left is location search, right is login */}
+        <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-1 text-xs sm:text-sm">
+          {/* Left: Location Search */}
+          <div className="flex items-center">
+            <LocationSearch />
           </div>
-          <div className="flex items-center space-x-2 mt-1 sm:mt-0">
-            <Badge
-              className="bg-white text-black font-medium px-2 py-0.5 rounded"
-              style={{ color: headerBarColor, borderColor: headerBarColor, backgroundColor: '#fff' }}
-            >
-              {orderCutoffText}
-            </Badge>
+          {/* Right: Login/User */}
+          <div className="flex items-center space-x-2">
             {user ? (
-              <div className="flex items-center space-x-2 ml-2">
+              <div className="flex items-center space-x-2">
                 <User className="h-4 w-4" />
-                <span>{user.email}</span>
+                <span className="text-sm">{user.email}</span>
                 <Button
                   variant="ghost"
                   size="sm"

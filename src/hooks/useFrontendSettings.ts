@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -29,11 +28,6 @@ export interface FrontendSettings {
   stat_cities_label?: string;
   stat_experience_label?: string;
   show_stat_plus_suffix?: boolean;
-  contact_phone?: string;
-  contact_email?: string;
-  contact_address?: string;
-  delivery_radius_text?: string;
-  order_cutoff_text?: string;
   tagline_badge_text?: string;
   facebook_url?: string;
   instagram_url?: string;
