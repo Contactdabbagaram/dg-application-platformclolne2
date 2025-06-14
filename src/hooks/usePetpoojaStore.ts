@@ -12,11 +12,11 @@ interface PetpoojaConfig {
 export const usePetpoojaStore = () => {
   const [loading, setLoading] = useState(false);
 
-  const saveStoreConfig = async (restaurantId: string, config: PetpoojaConfig) => {
+  const saveStoreConfig = async (outletId: string, config: PetpoojaConfig) => {
     setLoading(true);
     try {
       const { error } = await supabase
-        .from('restaurants')
+        .from('outlets')
         .update({
           petpooja_restaurant_id: config.restaurantId,
           petpooja_app_key: config.appKey,
@@ -24,7 +24,7 @@ export const usePetpoojaStore = () => {
           petpooja_access_token: config.accessToken,
           updated_at: new Date().toISOString()
         })
-        .eq('id', restaurantId);
+        .eq('id', outletId);
 
       if (error) throw error;
     } finally {
@@ -32,11 +32,11 @@ export const usePetpoojaStore = () => {
     }
   };
 
-  const getStoreConfig = async (restaurantId: string) => {
+  const getStoreConfig = async (outletId: string) => {
     const { data, error } = await supabase
-      .from('restaurants')
+      .from('outlets')
       .select('petpooja_restaurant_id, petpooja_app_key, petpooja_app_secret, petpooja_access_token')
-      .eq('id', restaurantId)
+      .eq('id', outletId)
       .single();
 
     if (error) throw error;

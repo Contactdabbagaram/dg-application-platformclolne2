@@ -1160,6 +1160,10 @@ export type Database = {
           longitude: number | null
           min_order_amount: number | null
           name: string
+          petpooja_access_token: string | null
+          petpooja_app_key: string | null
+          petpooja_app_secret: string | null
+          petpooja_restaurant_id: string | null
           phone: string | null
           restaurant_id: string | null
           updated_at: string | null
@@ -1176,6 +1180,10 @@ export type Database = {
           longitude?: number | null
           min_order_amount?: number | null
           name: string
+          petpooja_access_token?: string | null
+          petpooja_app_key?: string | null
+          petpooja_app_secret?: string | null
+          petpooja_restaurant_id?: string | null
           phone?: string | null
           restaurant_id?: string | null
           updated_at?: string | null
@@ -1192,6 +1200,10 @@ export type Database = {
           longitude?: number | null
           min_order_amount?: number | null
           name?: string
+          petpooja_access_token?: string | null
+          petpooja_app_key?: string | null
+          petpooja_app_secret?: string | null
+          petpooja_restaurant_id?: string | null
           phone?: string | null
           restaurant_id?: string | null
           updated_at?: string | null
@@ -1685,10 +1697,6 @@ export type Database = {
           packaging_charge: number | null
           packaging_charge_type: string | null
           packing_charge_taxes_id: string | null
-          petpooja_access_token: string | null
-          petpooja_app_key: string | null
-          petpooja_app_secret: string | null
-          petpooja_restaurant_id: string | null
           service_charge_applicable_on: string | null
           service_charge_calculate_on: number | null
           service_charge_type: number | null
@@ -1721,10 +1729,6 @@ export type Database = {
           packaging_charge?: number | null
           packaging_charge_type?: string | null
           packing_charge_taxes_id?: string | null
-          petpooja_access_token?: string | null
-          petpooja_app_key?: string | null
-          petpooja_app_secret?: string | null
-          petpooja_restaurant_id?: string | null
           service_charge_applicable_on?: string | null
           service_charge_calculate_on?: number | null
           service_charge_type?: number | null
@@ -1757,10 +1761,6 @@ export type Database = {
           packaging_charge?: number | null
           packaging_charge_type?: string | null
           packing_charge_taxes_id?: string | null
-          petpooja_access_token?: string | null
-          petpooja_app_key?: string | null
-          petpooja_app_secret?: string | null
-          petpooja_restaurant_id?: string | null
           service_charge_applicable_on?: string | null
           service_charge_calculate_on?: number | null
           service_charge_type?: number | null

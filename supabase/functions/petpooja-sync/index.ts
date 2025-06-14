@@ -38,28 +38,31 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     )
 
-    const { restaurant_id, sync_type = 'menu' } = await req.json()
+    const { outlet_id, sync_type = 'menu' } = await req.json()
 
-    // Get restaurant Petpooja credentials
-    const { data: restaurant, error: restaurantError } = await supabaseClient
-      .from('restaurants')
-      .select('*')
-      .eq('id', restaurant_id)
+    // Get outlet with its restaurant information and PetPooja credentials
+    const { data: outlet, error: outletError } = await supabaseClient
+      .from('outlets')
+      .select(`
+        *,
+        restaurants!inner(*)
+      `)
+      .eq('id', outlet_id)
       .single()
 
-    if (restaurantError || !restaurant) {
-      throw new Error('Restaurant not found')
+    if (outletError || !outlet) {
+      throw new Error('Outlet not found')
     }
 
-    if (!restaurant.petpooja_app_key || !restaurant.petpooja_app_secret) {
-      throw new Error('Petpooja credentials not configured')
+    if (!outlet.petpooja_app_key || !outlet.petpooja_app_secret) {
+      throw new Error('PetPooja credentials not configured for this outlet')
     }
 
-    // Create sync log entry
+    // Create sync log entry using restaurant_id
     const { data: syncLog, error: syncLogError } = await supabaseClient
       .from('sync_logs')
       .insert({
-        restaurant_id,
+        restaurant_id: outlet.restaurant_id,
         sync_type,
         status: 'pending'
       })
@@ -72,9 +75,9 @@ serve(async (req) => {
 
     try {
       if (sync_type === 'menu') {
-        await syncMenuFromPetpooja(supabaseClient, restaurant, syncLog.id)
+        await syncMenuFromPetpooja(supabaseClient, outlet, syncLog.id)
       } else if (sync_type === 'orders') {
-        await syncOrdersToPetpooja(supabaseClient, restaurant, syncLog.id)
+        await syncOrdersToPetpooja(supabaseClient, outlet, syncLog.id)
       }
 
       // Update sync log as successful
@@ -84,7 +87,7 @@ serve(async (req) => {
         .eq('id', syncLog.id)
 
       return new Response(
-        JSON.stringify({ success: true, message: `${sync_type} sync completed` }),
+        JSON.stringify({ success: true, message: `${sync_type} sync completed for outlet ${outlet.name}` }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
 
@@ -113,33 +116,33 @@ serve(async (req) => {
   }
 })
 
-async function syncMenuFromPetpooja(supabaseClient: any, restaurant: any, syncLogId: string) {
+async function syncMenuFromPetpooja(supabaseClient: any, outlet: any, syncLogId: string) {
   const petpoojaBaseUrl = 'https://www.petpooja.com/api/';
   
-  // Fetch categories from Petpooja
+  // Fetch categories from PetPooja using outlet credentials
   const categoriesResponse = await fetch(`${petpoojaBaseUrl}get_menu_categories`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      app_key: restaurant.petpooja_app_key,
-      app_secret: restaurant.petpooja_app_secret,
-      access_token: restaurant.petpooja_access_token,
-      restaurant_id: restaurant.petpooja_restaurant_id
+      app_key: outlet.petpooja_app_key,
+      app_secret: outlet.petpooja_app_secret,
+      access_token: outlet.petpooja_access_token,
+      restaurant_id: outlet.petpooja_restaurant_id
     })
   });
 
   const categoriesData = await categoriesResponse.json();
   
   if (!categoriesData.success) {
-    throw new Error(`Petpooja API error: ${categoriesData.message}`);
+    throw new Error(`PetPooja API error: ${categoriesData.message}`);
   }
 
-  // Sync categories
+  // Sync categories to restaurant (shared across outlets)
   for (const category of categoriesData.data as PetpoojaCategory[]) {
     await supabaseClient
       .from('menu_categories')
       .upsert({
-        restaurant_id: restaurant.id,
+        restaurant_id: outlet.restaurant_id,
         petpooja_category_id: category.categoryid,
         name: category.categoryname,
         description: category.categorydesc,
@@ -150,35 +153,35 @@ async function syncMenuFromPetpooja(supabaseClient: any, restaurant: any, syncLo
       });
   }
 
-  // Fetch menu items from Petpooja
+  // Fetch menu items from PetPooja using outlet credentials
   const itemsResponse = await fetch(`${petpoojaBaseUrl}get_menu`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      app_key: restaurant.petpooja_app_key,
-      app_secret: restaurant.petpooja_app_secret,
-      access_token: restaurant.petpooja_access_token,
-      restaurant_id: restaurant.petpooja_restaurant_id
+      app_key: outlet.petpooja_app_key,
+      app_secret: outlet.petpooja_app_secret,
+      access_token: outlet.petpooja_access_token,
+      restaurant_id: outlet.petpooja_restaurant_id
     })
   });
 
   const itemsData = await itemsResponse.json();
   
   if (!itemsData.success) {
-    throw new Error(`Petpooja API error: ${itemsData.message}`);
+    throw new Error(`PetPooja API error: ${itemsData.message}`);
   }
 
-  // Get category mappings
+  // Get category mappings for this restaurant
   const { data: categories } = await supabaseClient
     .from('menu_categories')
     .select('id, petpooja_category_id')
-    .eq('restaurant_id', restaurant.id);
+    .eq('restaurant_id', outlet.restaurant_id);
 
   const categoryMap = new Map(
     categories?.map((cat: any) => [cat.petpooja_category_id, cat.id]) || []
   );
 
-  // Sync menu items
+  // Sync menu items to restaurant (shared across outlets)
   for (const item of itemsData.data as PetpoojaMenuItem[]) {
     const categoryId = categoryMap.get(item.categoryid);
     
@@ -186,7 +189,7 @@ async function syncMenuFromPetpooja(supabaseClient: any, restaurant: any, syncLo
       await supabaseClient
         .from('menu_items')
         .upsert({
-          restaurant_id: restaurant.id,
+          restaurant_id: outlet.restaurant_id,
           category_id: categoryId,
           petpooja_item_id: item.itemid,
           name: item.itemname,
@@ -207,14 +210,15 @@ async function syncMenuFromPetpooja(supabaseClient: any, restaurant: any, syncLo
     .update({
       data_synced: {
         categories_synced: categoriesData.data.length,
-        items_synced: itemsData.data.length
+        items_synced: itemsData.data.length,
+        outlet_name: outlet.name
       }
     })
     .eq('id', syncLogId);
 }
 
-async function syncOrdersToPetpooja(supabaseClient: any, restaurant: any, syncLogId: string) {
-  // Get pending orders to sync
+async function syncOrdersToPetpooja(supabaseClient: any, outlet: any, syncLogId: string) {
+  // Get pending orders for this specific outlet
   const { data: orders, error } = await supabaseClient
     .from('orders')
     .select(`
@@ -225,6 +229,7 @@ async function syncOrdersToPetpooja(supabaseClient: any, restaurant: any, syncLo
       )
     `)
     .is('petpooja_order_id', null)
+    .eq('outlet_id', outlet.id)
     .eq('status', 'confirmed');
 
   if (error) {
@@ -236,12 +241,12 @@ async function syncOrdersToPetpooja(supabaseClient: any, restaurant: any, syncLo
 
   for (const order of orders || []) {
     try {
-      // Format order for Petpooja
+      // Format order for PetPooja using outlet credentials
       const petpoojaOrder = {
-        app_key: restaurant.petpooja_app_key,
-        app_secret: restaurant.petpooja_app_secret,
-        access_token: restaurant.petpooja_access_token,
-        restaurant_id: restaurant.petpooja_restaurant_id,
+        app_key: outlet.petpooja_app_key,
+        app_secret: outlet.petpooja_app_secret,
+        access_token: outlet.petpooja_access_token,
+        restaurant_id: outlet.petpooja_restaurant_id,
         order: {
           order_id: order.order_number,
           customer_name: `Customer ${order.id.slice(-8)}`,
@@ -269,7 +274,7 @@ async function syncOrdersToPetpooja(supabaseClient: any, restaurant: any, syncLo
       const result = await response.json();
       
       if (result.success) {
-        // Update order with Petpooja order ID
+        // Update order with PetPooja order ID
         await supabaseClient
           .from('orders')
           .update({
@@ -292,7 +297,8 @@ async function syncOrdersToPetpooja(supabaseClient: any, restaurant: any, syncLo
     .from('sync_logs')
     .update({
       data_synced: {
-        orders_synced: syncedOrdersCount
+        orders_synced: syncedOrdersCount,
+        outlet_name: outlet.name
       }
     })
     .eq('id', syncLogId);

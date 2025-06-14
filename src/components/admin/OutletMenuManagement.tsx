@@ -11,10 +11,11 @@ import { Plus, Search, Filter, Edit, ChevronDown, ChevronRight, Package, Tag, Pe
 
 interface OutletMenuManagementProps {
   outletName: string;
+  outletId: string;
   restaurantId: string;
 }
 
-const OutletMenuManagement = ({ outletName, restaurantId }: OutletMenuManagementProps) => {
+const OutletMenuManagement = ({ outletName, outletId, restaurantId }: OutletMenuManagementProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState('overview');
@@ -111,7 +112,7 @@ const OutletMenuManagement = ({ outletName, restaurantId }: OutletMenuManagement
           <Filter className="h-4 w-4 mr-2" />
           Filter
         </Button>
-        <PetpoojaSyncButton restaurantId={restaurantId} syncType="menu" />
+        <PetpoojaSyncButton outletId={outletId} syncType="menu" />
       </div>
 
       {/* Menu Categories */}

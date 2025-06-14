@@ -13,30 +13,30 @@ interface SyncStatus {
 }
 
 interface StoreSyncDashboardProps {
-  restaurantId: string;
+  outletId: string;
   syncStatus: SyncStatus;
   onSync: (syncType: 'menu' | 'taxes' | 'discounts' | 'all') => void;
   loading: boolean;
 }
 
-const StoreSyncDashboard = ({ restaurantId, syncStatus, onSync, loading }: StoreSyncDashboardProps) => {
+const StoreSyncDashboard = ({ outletId, syncStatus, onSync, loading }: StoreSyncDashboardProps) => {
   const { getSyncLogs } = usePetpoojaSync();
   const [syncLogs, setSyncLogs] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchSyncLogs = async () => {
       try {
-        const logs = await getSyncLogs(restaurantId);
+        const logs = await getSyncLogs(outletId);
         setSyncLogs(logs);
       } catch (error) {
         console.error('Failed to fetch sync logs:', error);
       }
     };
 
-    if (restaurantId) {
+    if (outletId) {
       fetchSyncLogs();
     }
-  }, [restaurantId, getSyncLogs, syncStatus]);
+  }, [outletId, getSyncLogs, syncStatus]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {

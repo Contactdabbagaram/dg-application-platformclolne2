@@ -15,14 +15,14 @@ export const usePetpoojaSync = () => {
   });
   const [loading, setLoading] = useState(false);
 
-  const triggerSync = async (restaurantId: string, syncType: 'menu' | 'taxes' | 'discounts' | 'all') => {
+  const triggerSync = async (outletId: string, syncType: 'menu' | 'taxes' | 'discounts' | 'all') => {
     setLoading(true);
     setSyncStatus(prev => ({ ...prev, status: 'syncing' }));
 
     try {
       const { data, error } = await supabase.functions.invoke('petpooja-sync', {
         body: {
-          restaurant_id: restaurantId,
+          outlet_id: outletId,
           sync_type: syncType === 'all' ? 'menu' : syncType
         }
       });
@@ -46,11 +46,20 @@ export const usePetpoojaSync = () => {
     }
   };
 
-  const getSyncLogs = async (restaurantId: string) => {
+  const getSyncLogs = async (outletId: string) => {
+    // Get restaurant_id from outlet first
+    const { data: outlet } = await supabase
+      .from('outlets')
+      .select('restaurant_id')
+      .eq('id', outletId)
+      .single();
+
+    if (!outlet) throw new Error('Outlet not found');
+
     const { data, error } = await supabase
       .from('sync_logs')
       .select('*')
-      .eq('restaurant_id', restaurantId)
+      .eq('restaurant_id', outlet.restaurant_id)
       .order('created_at', { ascending: false })
       .limit(10);
 
