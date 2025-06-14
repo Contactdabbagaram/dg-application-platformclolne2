@@ -12,6 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import GeofenceMap from './GeofenceMap';
 import { GeofencePoint } from '@/utils/locationUtils';
+import { updateOutletServiceArea } from '@/utils/databaseUtils';
 import { 
   ChevronDown, 
   ChevronUp, 
@@ -47,7 +48,6 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
   // Service area settings
   const [serviceAreaType, setServiceAreaType] = useState<'radius' | 'geofence'>('radius');
   const [deliveryRadius, setDeliveryRadius] = useState(10);
-  const [geofenceEnabled, setGeofenceEnabled] = useState(false);
   const [geofenceCoordinates, setGeofenceCoordinates] = useState<GeofencePoint[]>([]);
   const [maxDeliveryDistance, setMaxDeliveryDistance] = useState(10);
   const [estimatedDeliveryTime, setEstimatedDeliveryTime] = useState(30);
@@ -65,12 +65,11 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
         if (error) throw error;
 
         setOutletData(data);
-        setServiceAreaType((data as any).service_area_type || 'radius');
+        setServiceAreaType(data.service_area_type || 'radius');
         setDeliveryRadius(data.delivery_radius_km || 10);
-        setGeofenceEnabled((data as any).geofence_enabled || false);
-        setGeofenceCoordinates((data as any).geofence_coordinates || []);
-        setMaxDeliveryDistance((data as any).max_delivery_distance_km || 10);
-        setEstimatedDeliveryTime((data as any).estimated_delivery_time_minutes || 30);
+        setGeofenceCoordinates(data.geofence_coordinates || []);
+        setMaxDeliveryDistance(data.max_delivery_distance_km || 10);
+        setEstimatedDeliveryTime(data.estimated_delivery_time_minutes || 30);
       } catch (error) {
         console.error('Error loading outlet data:', error);
         toast({
@@ -97,26 +96,13 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
 
     setLoading(true);
     try {
-      const updateData: any = {
-        delivery_radius_km: deliveryRadius,
-        updated_at: new Date().toISOString()
-      };
-
-      // Only include new fields if they exist in the database schema
-      // For now, we'll use the existing delivery_radius_km field
-      console.log('Saving service area settings:', {
+      const { error } = await updateOutletServiceArea(outletData.id, {
         serviceAreaType,
         deliveryRadius,
-        geofenceEnabled,
-        geofenceCoordinates: geofenceCoordinates.length,
+        geofenceCoordinates,
         maxDeliveryDistance,
         estimatedDeliveryTime
       });
-
-      const { error } = await supabase
-        .from('outlets')
-        .update(updateData)
-        .eq('id', outletData.id);
 
       if (error) throw error;
 
@@ -310,16 +296,6 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
                           </div>
                         </div>
 
-                        {serviceAreaType === 'geofence' && (
-                          <div className="flex items-center justify-between">
-                            <Label htmlFor="geofence-enabled">Enable Geofence</Label>
-                            <Switch
-                              id="geofence-enabled"
-                              checked={geofenceEnabled}
-                              onCheckedChange={setGeofenceEnabled}
-                            />
-                          </div>
-                        )}
                       </div>
 
                       <GeofenceMap

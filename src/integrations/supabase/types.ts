@@ -1181,10 +1181,13 @@ export type Database = {
           delivery_fee: number | null
           delivery_radius_km: number | null
           email: string | null
+          estimated_delivery_time_minutes: number | null
+          geofence_coordinates: Json | null
           id: string
           is_active: boolean | null
           latitude: number | null
           longitude: number | null
+          max_delivery_distance_km: number | null
           min_order_amount: number | null
           name: string
           petpooja_access_token: string | null
@@ -1193,6 +1196,7 @@ export type Database = {
           petpooja_restaurant_id: string | null
           phone: string | null
           restaurant_id: string | null
+          service_area_type: string
           updated_at: string | null
         }
         Insert: {
@@ -1201,10 +1205,13 @@ export type Database = {
           delivery_fee?: number | null
           delivery_radius_km?: number | null
           email?: string | null
+          estimated_delivery_time_minutes?: number | null
+          geofence_coordinates?: Json | null
           id?: string
           is_active?: boolean | null
           latitude?: number | null
           longitude?: number | null
+          max_delivery_distance_km?: number | null
           min_order_amount?: number | null
           name: string
           petpooja_access_token?: string | null
@@ -1213,6 +1220,7 @@ export type Database = {
           petpooja_restaurant_id?: string | null
           phone?: string | null
           restaurant_id?: string | null
+          service_area_type?: string
           updated_at?: string | null
         }
         Update: {
@@ -1221,10 +1229,13 @@ export type Database = {
           delivery_fee?: number | null
           delivery_radius_km?: number | null
           email?: string | null
+          estimated_delivery_time_minutes?: number | null
+          geofence_coordinates?: Json | null
           id?: string
           is_active?: boolean | null
           latitude?: number | null
           longitude?: number | null
+          max_delivery_distance_km?: number | null
           min_order_amount?: number | null
           name?: string
           petpooja_access_token?: string | null
@@ -1233,6 +1244,7 @@ export type Database = {
           petpooja_restaurant_id?: string | null
           phone?: string | null
           restaurant_id?: string | null
+          service_area_type?: string
           updated_at?: string | null
         }
         Relationships: [
