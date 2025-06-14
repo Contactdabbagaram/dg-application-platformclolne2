@@ -36,6 +36,90 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
   const { triggerSync, syncStatus, loading: syncLoading } = usePetpoojaSync();
   const { storeData, loading: dataLoading, refetch } = useStoreData(restaurantId);
 
+  // Outlet meta state
+  const [outletData, setOutletData] = useState<any>(null);
+  const [restaurantInfo, setRestaurantInfo] = useState<any>(null);
+  const [outletLoading, setOutletLoading] = useState(true);
+
+  // For editable Store Code field
+  const [storeCode, setStoreCode] = useState('');
+
+  useEffect(() => {
+    // Fetch outlet basic info and restaurant info
+    const loadOutletAndRestaurant = async () => {
+      setOutletLoading(true);
+      try {
+        const { data: outlet, error } = await supabase
+          .from('outlets')
+          .select('*')
+          .eq('id', outletId)
+          .maybeSingle();
+
+        if (error || !outlet) {
+          setOutletData(null);
+          setRestaurantInfo(null);
+          setOutletLoading(false);
+          return;
+        }
+
+        setOutletData(outlet);
+        setStoreCode(outlet.store_code ?? '');
+
+        // Fetch related restaurant details
+        if (outlet.restaurant_id) {
+          const { data: restaurant, error: errR } = await supabase
+            .from('restaurants')
+            .select('*')
+            .eq('id', outlet.restaurant_id)
+            .maybeSingle();
+          if (!errR && restaurant) setRestaurantInfo(restaurant);
+          else setRestaurantInfo(null);
+        } else {
+          setRestaurantInfo(null);
+        }
+      } finally {
+        setOutletLoading(false);
+      }
+    };
+
+    if (outletId) loadOutletAndRestaurant();
+  }, [outletId]);
+
+  // Update restaurant info if user changes the store code
+  useEffect(() => {
+    const getByStoreCode = async () => {
+      if (!storeCode.trim()) return;
+      setOutletLoading(true);
+      // Find outlet by store_code
+      const { data: outlet, error } = await supabase
+        .from('outlets')
+        .select('*')
+        .eq('store_code', storeCode)
+        .maybeSingle();
+
+      if (!error && outlet) {
+        setOutletData(outlet);
+
+        // Fetch connected restaurant
+        if (outlet.restaurant_id) {
+          const { data: restaurant, error: errR } = await supabase
+            .from('restaurants')
+            .select('*')
+            .eq('id', outlet.restaurant_id)
+            .maybeSingle();
+          if (!errR && restaurant) setRestaurantInfo(restaurant);
+          else setRestaurantInfo(null);
+        } else {
+          setRestaurantInfo(null);
+        }
+      }
+      setOutletLoading(false);
+    };
+    if (storeCode?.length >= 6) getByStoreCode();
+    // Only if user changes storeCode independently, not initial mount
+    // eslint-disable-next-line
+  }, [storeCode]);
+
   useEffect(() => {
     // Fetch outlet-specific PetPooja credentials
     const fetchOutletConfig = async () => {
@@ -96,6 +180,139 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
 
   const hasValidConfig = petpoojaConfig.restaurantId && petpoojaConfig.appKey && petpoojaConfig.appSecret;
 
+  // Outlet basic info card UI
+  function BasicOutletInfo() {
+    if (outletLoading) {
+      return <p className="p-4 text-gray-600">Loading outlet details...</p>;
+    }
+    if (!outletData) {
+      return <p className="p-4 text-red-600">Outlet not found or not selected.</p>;
+    }
+    return (
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle>Outlet Details</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="outlet-store-code">Store Code</Label>
+              <Input id="outlet-store-code" value={storeCode} onChange={e => setStoreCode(e.target.value)} />
+            </div>
+            <div>
+              <Label htmlFor="outlet-name">Name</Label>
+              <Input id="outlet-name" value={outletData.name} readOnly />
+            </div>
+            <div>
+              <Label htmlFor="outlet-id">Outlet ID</Label>
+              <Input id="outlet-id" value={outletData.id} readOnly />
+            </div>
+            <div>
+              <Label htmlFor="outlet-address">Address</Label>
+              <Input id="outlet-address" value={outletData.address} readOnly />
+            </div>
+            <div>
+              <Label htmlFor="outlet-phone">Phone</Label>
+              <Input id="outlet-phone" value={outletData.phone ?? ''} readOnly />
+            </div>
+            <div>
+              <Label htmlFor="outlet-email">Email</Label>
+              <Input id="outlet-email" value={outletData.email ?? ''} readOnly />
+            </div>
+            <div>
+              <Label htmlFor="delivery-radius">Delivery Radius (km)</Label>
+              <Input id="delivery-radius" value={outletData.delivery_radius_km ?? ''} readOnly />
+            </div>
+            <div>
+              <Label htmlFor="delivery-fee">Delivery Fee</Label>
+              <Input id="delivery-fee" value={outletData.delivery_fee ?? ''} readOnly />
+            </div>
+            <div>
+              <Label htmlFor="min-order">Minimum Order</Label>
+              <Input id="min-order" value={outletData.min_order_amount ?? ''} readOnly />
+            </div>
+            <div>
+              <Label htmlFor="service-area-type">Service Area Type</Label>
+              <Input id="service-area-type" value={outletData.service_area_type} readOnly />
+            </div>
+            <div>
+              <Label htmlFor="latitude">Latitude</Label>
+              <Input id="latitude" value={outletData.latitude ?? ''} readOnly />
+            </div>
+            <div>
+              <Label htmlFor="longitude">Longitude</Label>
+              <Input id="longitude" value={outletData.longitude ?? ''} readOnly />
+            </div>
+            <div>
+              <Label htmlFor="is-active">Active?</Label>
+              <Input id="is-active" value={outletData.is_active ? 'Yes' : 'No'} readOnly />
+            </div>
+            <div>
+              <Label htmlFor="restaurant-id">Restaurant ID</Label>
+              <Input id="restaurant-id" value={outletData.restaurant_id ?? ''} readOnly />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Restaurant meta card UI
+  function RestaurantMetaInfo() {
+    if (!restaurantInfo) return null;
+    return (
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle>Connected Restaurant Details</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label>Name</Label>
+              <Input value={restaurantInfo.name} readOnly />
+            </div>
+            <div>
+              <Label>Restaurant ID</Label>
+              <Input value={restaurantInfo.id} readOnly />
+            </div>
+            <div>
+              <Label>Status</Label>
+              <Input value={restaurantInfo.status} readOnly />
+            </div>
+            <div>
+              <Label>City</Label>
+              <Input value={restaurantInfo.city ?? ''} readOnly />
+            </div>
+            <div>
+              <Label>State</Label>
+              <Input value={restaurantInfo.state ?? ''} readOnly />
+            </div>
+            <div>
+              <Label>Country</Label>
+              <Input value={restaurantInfo.country ?? 'India'} readOnly />
+            </div>
+            <div>
+              <Label>Address</Label>
+              <Input value={restaurantInfo.address ?? ''} readOnly />
+            </div>
+            <div>
+              <Label>Min Order</Label>
+              <Input value={restaurantInfo.minimum_order_amount ?? ''} readOnly />
+            </div>
+            <div>
+              <Label>Delivery Charges</Label>
+              <Input value={restaurantInfo.delivery_charge ?? ''} readOnly />
+            </div>
+            <div>
+              <Label>Prep Time</Label>
+              <Input value={restaurantInfo.minimum_prep_time ?? ''} readOnly />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -104,6 +321,10 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
           {hasValidConfig ? "Configured" : "Not Configured"}
         </Badge>
       </div>
+
+      {/* Show Outlet details and Restaurant details above tabs */}
+      <BasicOutletInfo />
+      <RestaurantMetaInfo />
 
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
@@ -124,12 +345,14 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
         </TabsContent>
 
         <TabsContent value="menu">
+          {/* Pass restaurantInfo to Menu tab */}
           <StoreMenuData 
             categories={storeData?.categories || []}
             items={storeData?.items || []}
             variations={storeData?.variations || []}
             addons={storeData?.addons || []}
             loading={dataLoading}
+            restaurant={restaurantInfo}
           />
         </TabsContent>
 

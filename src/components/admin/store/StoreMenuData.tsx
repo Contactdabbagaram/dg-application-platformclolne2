@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -50,9 +49,10 @@ interface StoreMenuDataProps {
   variations: Variation[];
   addons: AddonGroup[];
   loading: boolean;
+  restaurant?: any; // Added: pass restaurant info from above
 }
 
-const StoreMenuData = ({ categories, items, variations, addons, loading }: StoreMenuDataProps) => {
+const StoreMenuData = ({ categories, items, variations, addons, loading, restaurant }: StoreMenuDataProps) => {
   if (loading) {
     return <div className="text-center py-8">Loading menu data...</div>;
   }
@@ -62,6 +62,22 @@ const StoreMenuData = ({ categories, items, variations, addons, loading }: Store
 
   return (
     <div className="space-y-6">
+      {/* Restaurant Info at the Top */}
+      {restaurant && (
+        <div className="mb-4 bg-blue-50 border border-blue-200 rounded p-4">
+          <div className="flex flex-wrap items-center gap-4 text-blue-900">
+            <span className="font-bold text-lg">{restaurant.name}</span>
+            <span className="rounded px-2 py-1 bg-blue-200 text-blue-800 text-xs">Restaurant ID: {restaurant.id}</span>
+            <span className="text-gray-700">City: {restaurant.city ?? 'N/A'}</span>
+            <span className="text-gray-700">State: {restaurant.state ?? 'N/A'}</span>
+            <span className="text-gray-700">Min Order: ₹{restaurant.minimum_order_amount ?? 0}</span>
+            <span className="text-gray-700">Delivery Charge: ₹{restaurant.delivery_charge ?? 0}</span>
+            <span className="text-gray-700">Prep Time: {restaurant.minimum_prep_time ?? 30} mins</span>
+            <span className="text-gray-700">Status: <b>{restaurant.status}</b></span>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-6 text-center">
