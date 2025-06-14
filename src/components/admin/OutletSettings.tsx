@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import GeofenceMap from './GeofenceMap';
 import { GeofencePoint } from '@/utils/locationUtils';
@@ -43,7 +44,6 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
   const [lastSync, setLastSync] = useState('2 hours ago');
   const [outletData, setOutletData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
 
   // Service area settings
   const [serviceAreaType, setServiceAreaType] = useState<'radius' | 'geofence'>('radius');
@@ -72,16 +72,12 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
         setEstimatedDeliveryTime(data.estimated_delivery_time_minutes || 30);
       } catch (error) {
         console.error('Error loading outlet data:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load outlet data',
-          variant: 'destructive'
-        });
+        toast.error('Failed to load outlet data');
       }
     };
 
     loadOutletData();
-  }, [outletName, toast]);
+  }, [outletName]);
 
   const toggleSection = (section: string) => {
     setOpenSections(prev => 
@@ -92,31 +88,37 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
   };
 
   const saveServiceAreaSettings = async () => {
-    if (!outletData) return;
+    if (!outletData) {
+      console.error("Cannot save settings: outlet data is not loaded yet.");
+      toast.error("Cannot save settings: outlet data is not loaded yet.");
+      return;
+    }
 
     setLoading(true);
+    
+    const settingsToSave = {
+      serviceAreaType,
+      deliveryRadius,
+      geofenceCoordinates,
+      maxDeliveryDistance,
+      estimatedDeliveryTime
+    };
+
+    console.log(`Saving service area settings for outlet ${outletData.id}:`, settingsToSave);
+
     try {
-      const { error } = await updateOutletServiceArea(outletData.id, {
-        serviceAreaType,
-        deliveryRadius,
-        geofenceCoordinates,
-        maxDeliveryDistance,
-        estimatedDeliveryTime
-      });
+      const { data, error } = await updateOutletServiceArea(outletData.id, settingsToSave);
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
-      toast({
-        title: 'Success',
-        description: 'Service area settings updated successfully'
-      });
+      toast.success('Service area settings updated successfully');
+      console.log('Service area settings saved successfully. Response data:', data);
+
     } catch (error) {
-      console.error('Error saving settings:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to save service area settings',
-        variant: 'destructive'
-      });
+      console.error('Error saving service area settings:', error);
+      toast.error('Failed to save service area settings. Please check console for details.');
     } finally {
       setLoading(false);
     }
