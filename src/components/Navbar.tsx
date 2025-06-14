@@ -75,8 +75,61 @@ const Navbar = () => {
 
   return (
     <nav className="bg-white shadow-lg sticky top-0 z-50">
+      {/* Top Row - Header Bar */}
+      <div
+        className="w-full"
+        style={{
+          backgroundColor: headerBarColor,
+          color: '#fff',
+          transition: 'background-color 0.3s',
+        }}
+      >
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between px-4 py-1 text-xs sm:text-sm">
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            <Phone className="h-4 w-4 inline opacity-70" />
+            <span>{contactPhone}</span>
+            <span className="hidden sm:inline opacity-60">|</span>
+            <MapPin className="h-4 w-4 inline opacity-70 ml-2 sm:ml-0" />
+            <span>{deliveryRadiusText}</span>
+          </div>
+          <div className="flex items-center space-x-2 mt-1 sm:mt-0">
+            <Badge
+              className="bg-white text-black font-medium px-2 py-0.5 rounded"
+              style={{ color: headerBarColor, borderColor: headerBarColor, backgroundColor: '#fff' }}
+            >
+              {orderCutoffText}
+            </Badge>
+            {user ? (
+              <div className="flex items-center space-x-2 ml-2">
+                <User className="h-4 w-4" />
+                <span>{user.email}</span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLogout}
+                  className="text-white hover:text-red-200"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogin}
+                className="bg-white text-black ml-2"
+                style={{ color: headerBarColor, borderColor: headerBarColor }}
+              >
+                Login
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Main Navigation */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Main Navigation */}
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center">
