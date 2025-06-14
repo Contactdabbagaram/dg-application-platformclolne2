@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { MapPin, Navigation, AlertCircle, Loader2 } from 'lucide-react';
+import { MapPin, Navigation, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface LocationSearchProps {
@@ -15,23 +15,27 @@ declare global {
   }
 }
 
-const GOOGLE_MAPS_API_KEY = 'AIzaSyASu7HI6LlX0fwcRRfkm4JUbrGtvrJ8c4c';
+// IMPORTANT: This API key is hardcoded and visible in the frontend code.
+// For production, it's crucial to restrict this key on the Google Cloud Console
+// (e.g., to specific HTTP referrers) and consider moving it to a backend or environment variable.
+const GOOGLE_MAPS_API_KEY = 'AIzaSyASu7HI6LlX0fwcRRfkm4JUbrGtvrJ8c4c'; 
 
 const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
   const [isLoadingMaps, setIsLoadingMaps] = useState(false);
-  const autocompleteService = useRef<any>(null);
-  const placesService = useRef<any>(null);
+  
+  const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null);
+  const placesService = useRef<google.maps.places.PlacesService | null>(null);
+  const [sessionToken, setSessionToken] = useState<google.maps.places.AutocompleteSessionToken | null>(null);
+  
   const { toast } = useToast();
 
-  // Load Google Maps API
   useEffect(() => {
     const loadGoogleMaps = async () => {
       try {
-        // Check if Google Maps is already loaded
         if (window.google && window.google.maps && window.google.maps.places) {
           initializeServices();
           return;
@@ -40,52 +44,44 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
         console.log('Loading Google Maps...');
         setIsLoadingMaps(true);
 
-        // Remove any existing Google Maps scripts
         const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
         if (existingScript) {
           existingScript.remove();
         }
 
-        // Load Google Maps script
         const script = document.createElement('script');
         script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&v=weekly`;
         script.async = true;
         script.defer = true;
         
-        // Create global callback
-        window.initGoogleMaps = () => {
-          console.log('Google Maps loaded successfully');
+        window.initGoogleMaps = () => { // This callback might not be strictly necessary if script.onload works reliably
+          console.log('Google Maps loaded via initGoogleMaps callback');
           initializeServices();
           setIsLoadingMaps(false);
         };
 
-        script.onerror = () => {
-          console.error('Error loading Google Maps');
-          toast({
-            title: "Google Maps API Error",
-            description: "The Google Maps API key is not properly configured. Please ensure all required APIs are enabled in the Google Cloud Console.",
-            variant: "destructive",
-          });
+        script.onload = () => {
+          if (window.google && window.google.maps && window.google.maps.places) {
+            console.log('Google Maps script loaded successfully via onload');
+            initializeServices();
+          } else {
+            console.error('Google Maps loaded, but window.google.maps.places is not available.');
+             toast({
+              title: "Google Maps API Error",
+              description: "Failed to initialize Google Maps Places service. Ensure the API key is correct and Places API is enabled.",
+              variant: "destructive",
+            });
+          }
           setIsLoadingMaps(false);
         };
-
-        // Add error handler for API authorization issues
-        script.onload = () => {
-          if (window.google && window.google.maps) {
-            try {
-              // Test if the API is properly authorized
-              new window.google.maps.places.AutocompleteService();
-              console.log('Google Maps loaded successfully');
-              initializeServices();
-            } catch (error) {
-              console.error('Google Maps API authorization error:', error);
-              toast({
-                title: "API Configuration Error",
-                description: "Please enable Places API, Geocoding API, and Maps JavaScript API in your Google Cloud Console.",
-                variant: "destructive",
-              });
-            }
-          }
+        
+        script.onerror = () => {
+          console.error('Error loading Google Maps script');
+          toast({
+            title: "Google Maps API Error",
+            description: "Could not load the Google Maps script. Please check your internet connection and API key configuration.",
+            variant: "destructive",
+          });
           setIsLoadingMaps(false);
         };
 
@@ -106,54 +102,66 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
 
   const initializeServices = () => {
     if (window.google && window.google.maps && window.google.maps.places) {
-      // Initialize the Places service with a map instance
-      const map = new window.google.maps.Map(document.createElement('div'));
-      placesService.current = new window.google.maps.places.PlacesService(map);
+      // Initialize AutocompleteService
+      autocompleteService.current = new window.google.maps.places.AutocompleteService();
       
-      // Initialize Autocomplete
-      const searchBox = new window.google.maps.places.SearchBox(
-        document.createElement('input'),
-        {
-          componentRestrictions: { country: 'in' },
-          types: ['geocode', 'establishment']
-        }
-      );
+      // Initialize PlacesService
+      // PlacesService requires a map instance or an HTMLDivElement to attach to, even if not displayed.
+      const mapDiv = document.createElement('div'); 
+      placesService.current = new window.google.maps.places.PlacesService(mapDiv);
       
-      autocompleteService.current = searchBox;
       setGoogleMapsLoaded(true);
-      console.log('Google Maps services initialized with new Places API');
+      console.log('Google Maps Autocomplete and Places services initialized.');
+      
+      // Generate initial session token
+      if (window.google.maps.places.AutocompleteSessionToken) {
+        setSessionToken(new window.google.maps.places.AutocompleteSessionToken());
+      }
+    } else {
+      console.error("Cannot initialize Google Maps services: google.maps.places is not available.");
+      toast({
+        title: "Initialization Error",
+        description: "Google Maps services could not be initialized. Try refreshing the page.",
+        variant: "destructive",
+      });
     }
   };
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     
-    if (query.length > 2 && googleMapsLoaded && placesService.current) {
+    if (!autocompleteService.current || !googleMapsLoaded) {
+      setSuggestions([]);
+      return;
+    }
+
+    if (query.length > 2) {
       setIsLoading(true);
       
-      // Use textSearch instead of getPlacePredictions
-      placesService.current.textSearch(
+      let currentToken = sessionToken;
+      if (!currentToken && window.google.maps.places.AutocompleteSessionToken) {
+        currentToken = new window.google.maps.places.AutocompleteSessionToken();
+        setSessionToken(currentToken);
+      }
+
+      autocompleteService.current.getPlacePredictions(
         {
-          query: query,
-          region: 'in'
+          input: query,
+          componentRestrictions: { country: 'in' }, // Restrict to India
+          types: ['geocode', 'establishment'], // Suggest addresses and business names
+          sessionToken: currentToken,
         },
-        (results: any[], status: any) => {
+        (predictions: google.maps.places.AutocompletePrediction[] | null, status: google.maps.places.PlacesServiceStatus) => {
           setIsLoading(false);
-          
-          if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
-            const suggestions = results.map(result => ({
-              place_id: result.place_id,
-              description: result.formatted_address || result.name
-            }));
-            setSuggestions(suggestions);
+          if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+            setSuggestions(predictions);
           } else {
             setSuggestions([]);
-            if (status === "ZERO_RESULTS") {
-              toast({
-                title: "No results found",
-                description: "Try a different search term",
-                variant: "default",
-              });
+            if (status === window.google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+              // Do not toast for zero results, it's normal behavior
+            } else if (status !== window.google.maps.places.PlacesServiceStatus.OK) {
+              console.error('AutocompleteService error:', status);
+              // Optionally toast for other errors, but be mindful of API rate limits or transient issues.
             }
           }
         }
@@ -163,6 +171,40 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
     }
   };
 
+  const handleSuggestionClick = (suggestion: google.maps.places.AutocompletePrediction) => {
+    if (!placesService.current || !suggestion.place_id) return;
+
+    setIsLoading(true);
+    placesService.current.getDetails(
+      {
+        placeId: suggestion.place_id,
+        fields: ['name', 'formatted_address', 'geometry'], // Fetch address and optionally geometry
+        sessionToken: sessionToken // Use the same session token
+      },
+      (place: google.maps.places.PlaceResult | null, status: google.maps.places.PlacesServiceStatus) => {
+        setIsLoading(false);
+        if (status === window.google.maps.places.PlacesServiceStatus.OK && place && place.formatted_address) {
+          setSearchQuery(place.formatted_address);
+          onLocationSelect(place.formatted_address);
+          setSuggestions([]);
+        } else {
+          console.error('PlacesService getDetails error:', status);
+          toast({
+            title: "Error",
+            description: "Could not fetch location details.",
+            variant: "destructive",
+          });
+        }
+        // A new session token should be generated for the next autocomplete session.
+        if (window.google.maps.places.AutocompleteSessionToken) {
+          setSessionToken(new window.google.maps.places.AutocompleteSessionToken());
+        } else {
+          setSessionToken(null);
+        }
+      }
+    );
+  };
+  
   const getCurrentLocation = () => {
     setIsLoading(true);
     
@@ -236,23 +278,16 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
     );
   };
 
-  const handleSuggestionClick = (suggestion: any) => {
-    const address = suggestion.description;
-    setSearchQuery(address);
-    onLocationSelect(address);
-    setSuggestions([]);
-  };
-
   return (
     <div className="w-full max-w-md">
       <div className="flex gap-2 mb-2">
         <div className="flex-1 relative">
           <Input
-            placeholder="Search for your location..."
+            placeholder="Search for your location in India..."
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
             className="pr-10"
-            disabled={isLoadingMaps}
+            disabled={isLoadingMaps || !googleMapsLoaded}
           />
           {isLoading && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -264,7 +299,7 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
           variant="outline" 
           size="icon"
           onClick={getCurrentLocation}
-          disabled={isLoadingMaps || isLoading}
+          disabled={isLoadingMaps || isLoading || !googleMapsLoaded}
         >
           <Navigation className="h-4 w-4" />
         </Button>
@@ -292,6 +327,12 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
         <div className="flex items-center gap-2 text-sm text-gray-500 mt-2">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>Loading location service...</span>
+        </div>
+      )}
+       {!googleMapsLoaded && !isLoadingMaps && (
+        <div className="flex items-center gap-2 text-sm text-red-500 mt-2">
+          {/* <AlertCircle className="h-4 w-4" /> Re-add if needed */}
+          <span>Location service failed to load. Please check API key or try again.</span>
         </div>
       )}
     </div>
