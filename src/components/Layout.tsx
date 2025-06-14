@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import Navbar from '@/components/Navbar';
 import LoadingOverlay from '@/components/LoadingOverlay';
 import { usePageTransition } from '@/contexts/PageTransitionContext';
+import { useRestaurant } from '@/contexts/RestaurantContext';
+import { useFrontendSettings } from '@/hooks/useFrontendSettings';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -13,6 +15,12 @@ const Layout = ({ children }: LayoutProps) => {
   const location = useLocation();
   const [isTransitioning, setIsTransitioning] = useState(false);
   const { endTransition } = usePageTransition();
+  const { currentRestaurant } = useRestaurant();
+  const restaurantId = currentRestaurant?.id || '';
+  const { settings } = useFrontendSettings(restaurantId);
+
+  // Determine background color from frontend settings, fallback to white
+  const appBgColor = settings?.primary_color || '#fff';
 
   useEffect(() => {
     // Start transition when location changes
@@ -28,7 +36,10 @@ const Layout = ({ children }: LayoutProps) => {
   }, [location.pathname, endTransition]);
 
   return (
-    <div className="min-h-screen">
+    <div
+      className="min-h-screen"
+      style={{ backgroundColor: appBgColor, transition: 'background-color 0.3s' }}
+    >
       <Navbar />
       <LoadingOverlay />
       <main 
