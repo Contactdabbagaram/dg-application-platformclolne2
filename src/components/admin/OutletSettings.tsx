@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -311,11 +310,19 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
                       />
 
                       <div className="flex gap-2">
-                        <Button onClick={saveServiceAreaSettings} disabled={loading}>
-                          {loading ? 'Saving...' : 'Save Service Area Settings'}
+                        <Button 
+                          onClick={saveServiceAreaSettings} 
+                          disabled={loading || !outletData}
+                        >
+                          {outletData ? (loading ? 'Saving...' : 'Save Service Area Settings') : 'Loading Outlet Data...'}
                         </Button>
                         <Button variant="outline">Test Location</Button>
                       </div>
+                      {!outletData && (
+                        <p className="text-sm text-gray-500 mt-1">
+                          Outlet details are loading. Please wait before saving.
+                        </p>
+                      )}
                     </div>
                   )}
 
