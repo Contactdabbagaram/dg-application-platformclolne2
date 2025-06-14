@@ -5,10 +5,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Package, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
+import { Package, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface PetpoojaSettingsProps {
   outletId: string | undefined;
@@ -26,13 +25,16 @@ const PetpoojaSettings = ({ outletId }: PetpoojaSettingsProps) => {
   const [lastSync, setLastSync] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!outletId) { setLoading(false); return; }
+    if (!outletId) { 
+      setLoading(false); 
+      return; 
+    }
     setLoading(true);
     const fetchConfig = async () => {
       try {
         const { data, error } = await supabase
           .from('outlets')
-          .select('petpooja_restaurant_id,petpooja_app_key,petpooja_app_secret,petpooja_access_token')
+          .select('petpooja_restaurant_id, petpooja_app_key, petpooja_app_secret, petpooja_access_token')
           .eq('id', outletId)
           .maybeSingle();
         if (error) throw error;
@@ -46,6 +48,7 @@ const PetpoojaSettings = ({ outletId }: PetpoojaSettingsProps) => {
           setConnected(!!(data.petpooja_app_key && data.petpooja_app_secret));
         }
       } catch (err) {
+        console.error('Error loading Petpooja config:', err);
         toast.error('Failed to load Petpooja config');
         setConnected(false);
       }
@@ -58,16 +61,27 @@ const PetpoojaSettings = ({ outletId }: PetpoojaSettingsProps) => {
     // Fetch last sync from sync_logs
     const fetchLastSync = async () => {
       if (!outletId) return;
-      const { data: outlet } = await supabase.from('outlets').select('restaurant_id').eq('id', outletId).maybeSingle();
-      if (outlet?.restaurant_id) {
-        const { data: logs } = await supabase
-          .from('sync_logs')
-          .select('created_at')
-          .eq('restaurant_id', outlet.restaurant_id)
-          .eq('status', 'success')
-          .order('created_at', { ascending: false })
-          .limit(1);
-        if (logs && logs[0]?.created_at) setLastSync(new Date(logs[0].created_at).toLocaleString());
+      try {
+        const { data: outlet } = await supabase
+          .from('outlets')
+          .select('restaurant_id')
+          .eq('id', outletId)
+          .maybeSingle();
+        
+        if (outlet?.restaurant_id) {
+          const { data: logs } = await supabase
+            .from('sync_logs')
+            .select('created_at')
+            .eq('restaurant_id', outlet.restaurant_id)
+            .eq('status', 'success')
+            .order('created_at', { ascending: false })
+            .limit(1);
+          if (logs && logs[0]?.created_at) {
+            setLastSync(new Date(logs[0].created_at).toLocaleString());
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching last sync:', error);
       }
     };
     fetchLastSync();
@@ -83,10 +97,10 @@ const PetpoojaSettings = ({ outletId }: PetpoojaSettingsProps) => {
     setLoading(true);
     try {
       const updateData: any = {
-        petpooja_restaurant_id: petpoojaConfig.petpooja_restaurant_id,
-        petpooja_app_key: petpoojaConfig.petpooja_app_key,
-        petpooja_app_secret: petpoojaConfig.petpooja_app_secret,
-        petpooja_access_token: petpoojaConfig.petpooja_access_token,
+        petpooja_restaurant_id: petpoojaConfig.petpooja_restaurant_id || null,
+        petpooja_app_key: petpoojaConfig.petpooja_app_key || null,
+        petpooja_app_secret: petpoojaConfig.petpooja_app_secret || null,
+        petpooja_access_token: petpoojaConfig.petpooja_access_token || null,
         updated_at: new Date().toISOString(),
       };
       const { error } = await supabase
@@ -95,10 +109,11 @@ const PetpoojaSettings = ({ outletId }: PetpoojaSettingsProps) => {
         .eq('id', outletId);
 
       if (error) throw error;
-      toast.success('Petpooja configuration saved');
+      toast.success('Petpooja configuration saved successfully');
       setConnected(!!(petpoojaConfig.petpooja_app_key && petpoojaConfig.petpooja_app_secret));
     } catch (err) {
-      toast.error('Failed to save config');
+      console.error('Error saving config:', err);
+      toast.error('Failed to save configuration');
     }
     setLoading(false);
   };
@@ -134,7 +149,7 @@ const PetpoojaSettings = ({ outletId }: PetpoojaSettingsProps) => {
             )}
           </div>
         </div>
-        {connected && !!petpoojaConfig.petpooja_restaurant_id && (
+        {connected && petpoojaConfig.petpooja_restaurant_id && (
           <div className="text-sm text-gray-600">
             <p>Restaurant ID: {petpoojaConfig.petpooja_restaurant_id}</p>
             <p>Last sync: {lastSync || 'Never'}</p>
@@ -191,8 +206,9 @@ const PetpoojaSettings = ({ outletId }: PetpoojaSettingsProps) => {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button onClick={handleSave} disabled={loading}>Save Petpooja Config</Button>
-            {/* In the future: Test Connection or Trigger Sync */}
+            <Button onClick={handleSave} disabled={loading}>
+              {loading ? 'Saving...' : 'Save Petpooja Config'}
+            </Button>
           </div>
         </CardContent>
       </Card>

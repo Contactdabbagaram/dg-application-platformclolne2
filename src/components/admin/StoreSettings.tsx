@@ -40,6 +40,7 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
   const [outletData, setOutletData] = useState<any>(null);
   const [restaurantInfo, setRestaurantInfo] = useState<any>(null);
   const [outletLoading, setOutletLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   // For editable Store Code field
   const [storeCode, setStoreCode] = useState('');
@@ -116,8 +117,6 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
       setOutletLoading(false);
     };
     if (storeCode?.length >= 6) getByStoreCode();
-    // Only if user changes storeCode independently, not initial mount
-    // eslint-disable-next-line
   }, [storeCode]);
 
   useEffect(() => {
@@ -160,6 +159,36 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
     }
   };
 
+  const handleUpdateStoreCode = async () => {
+    if (!outletData?.id || !storeCode.trim()) return;
+    
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from('outlets')
+        .update({ store_code: storeCode, updated_at: new Date().toISOString() })
+        .eq('id', outletData.id);
+
+      if (error) throw error;
+
+      toast({
+        title: 'Store Code Updated',
+        description: 'Store code has been updated successfully.',
+      });
+      
+      // Refresh outlet data
+      setOutletData({ ...outletData, store_code: storeCode });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to update store code. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleSync = async (syncType: 'menu' | 'taxes' | 'discounts' | 'all') => {
     try {
       await triggerSync(outletId, syncType);
@@ -197,51 +226,64 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label htmlFor="outlet-store-code">Store Code</Label>
-              <Input id="outlet-store-code" value={storeCode} onChange={e => setStoreCode(e.target.value)} />
+              <div className="flex gap-2">
+                <Input 
+                  id="outlet-store-code" 
+                  value={storeCode} 
+                  onChange={e => setStoreCode(e.target.value)} 
+                />
+                <Button 
+                  onClick={handleUpdateStoreCode} 
+                  disabled={saving || !storeCode.trim() || storeCode === outletData.store_code}
+                  size="sm"
+                >
+                  {saving ? 'Saving...' : 'Update'}
+                </Button>
+              </div>
             </div>
             <div>
               <Label htmlFor="outlet-name">Name</Label>
-              <Input id="outlet-name" value={outletData.name} readOnly />
+              <Input id="outlet-name" value={outletData.name || ''} readOnly />
             </div>
             <div>
               <Label htmlFor="outlet-id">Outlet ID</Label>
-              <Input id="outlet-id" value={outletData.id} readOnly />
+              <Input id="outlet-id" value={outletData.id || ''} readOnly />
             </div>
             <div>
               <Label htmlFor="outlet-address">Address</Label>
-              <Input id="outlet-address" value={outletData.address} readOnly />
+              <Input id="outlet-address" value={outletData.address || ''} readOnly />
             </div>
             <div>
               <Label htmlFor="outlet-phone">Phone</Label>
-              <Input id="outlet-phone" value={outletData.phone ?? ''} readOnly />
+              <Input id="outlet-phone" value={outletData.phone || ''} readOnly />
             </div>
             <div>
               <Label htmlFor="outlet-email">Email</Label>
-              <Input id="outlet-email" value={outletData.email ?? ''} readOnly />
+              <Input id="outlet-email" value={outletData.email || ''} readOnly />
             </div>
             <div>
               <Label htmlFor="delivery-radius">Delivery Radius (km)</Label>
-              <Input id="delivery-radius" value={outletData.delivery_radius_km ?? ''} readOnly />
+              <Input id="delivery-radius" value={outletData.delivery_radius_km || ''} readOnly />
             </div>
             <div>
               <Label htmlFor="delivery-fee">Delivery Fee</Label>
-              <Input id="delivery-fee" value={outletData.delivery_fee ?? ''} readOnly />
+              <Input id="delivery-fee" value={outletData.delivery_fee || ''} readOnly />
             </div>
             <div>
               <Label htmlFor="min-order">Minimum Order</Label>
-              <Input id="min-order" value={outletData.min_order_amount ?? ''} readOnly />
+              <Input id="min-order" value={outletData.min_order_amount || ''} readOnly />
             </div>
             <div>
               <Label htmlFor="service-area-type">Service Area Type</Label>
-              <Input id="service-area-type" value={outletData.service_area_type} readOnly />
+              <Input id="service-area-type" value={outletData.service_area_type || ''} readOnly />
             </div>
             <div>
               <Label htmlFor="latitude">Latitude</Label>
-              <Input id="latitude" value={outletData.latitude ?? ''} readOnly />
+              <Input id="latitude" value={outletData.latitude || ''} readOnly />
             </div>
             <div>
               <Label htmlFor="longitude">Longitude</Label>
-              <Input id="longitude" value={outletData.longitude ?? ''} readOnly />
+              <Input id="longitude" value={outletData.longitude || ''} readOnly />
             </div>
             <div>
               <Label htmlFor="is-active">Active?</Label>
@@ -249,7 +291,15 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
             </div>
             <div>
               <Label htmlFor="restaurant-id">Restaurant ID</Label>
-              <Input id="restaurant-id" value={outletData.restaurant_id ?? ''} readOnly />
+              <Input id="restaurant-id" value={outletData.restaurant_id || ''} readOnly />
+            </div>
+            <div>
+              <Label htmlFor="max-delivery-distance">Max Delivery Distance (km)</Label>
+              <Input id="max-delivery-distance" value={outletData.max_delivery_distance_km || ''} readOnly />
+            </div>
+            <div>
+              <Label htmlFor="estimated-delivery-time">Estimated Delivery Time (min)</Label>
+              <Input id="estimated-delivery-time" value={outletData.estimated_delivery_time_minutes || ''} readOnly />
             </div>
           </div>
         </CardContent>
@@ -269,43 +319,67 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label>Name</Label>
-              <Input value={restaurantInfo.name} readOnly />
+              <Input value={restaurantInfo.name || ''} readOnly />
             </div>
             <div>
               <Label>Restaurant ID</Label>
-              <Input value={restaurantInfo.id} readOnly />
+              <Input value={restaurantInfo.id || ''} readOnly />
             </div>
             <div>
               <Label>Status</Label>
-              <Input value={restaurantInfo.status} readOnly />
+              <Input value={restaurantInfo.status || ''} readOnly />
             </div>
             <div>
               <Label>City</Label>
-              <Input value={restaurantInfo.city ?? ''} readOnly />
+              <Input value={restaurantInfo.city || ''} readOnly />
             </div>
             <div>
               <Label>State</Label>
-              <Input value={restaurantInfo.state ?? ''} readOnly />
+              <Input value={restaurantInfo.state || ''} readOnly />
             </div>
             <div>
               <Label>Country</Label>
-              <Input value={restaurantInfo.country ?? 'India'} readOnly />
+              <Input value={restaurantInfo.country || ''} readOnly />
             </div>
             <div>
               <Label>Address</Label>
-              <Input value={restaurantInfo.address ?? ''} readOnly />
+              <Input value={restaurantInfo.address || ''} readOnly />
             </div>
             <div>
               <Label>Min Order</Label>
-              <Input value={restaurantInfo.minimum_order_amount ?? ''} readOnly />
+              <Input value={restaurantInfo.minimum_order_amount || ''} readOnly />
             </div>
             <div>
               <Label>Delivery Charges</Label>
-              <Input value={restaurantInfo.delivery_charge ?? ''} readOnly />
+              <Input value={restaurantInfo.delivery_charge || ''} readOnly />
             </div>
             <div>
               <Label>Prep Time</Label>
-              <Input value={restaurantInfo.minimum_prep_time ?? ''} readOnly />
+              <Input value={restaurantInfo.minimum_prep_time || ''} readOnly />
+            </div>
+            <div>
+              <Label>Currency Symbol</Label>
+              <Input value={restaurantInfo.currency_symbol || ''} readOnly />
+            </div>
+            <div>
+              <Label>Contact Information</Label>
+              <Input value={restaurantInfo.contact_information || ''} readOnly />
+            </div>
+            <div>
+              <Label>Landmark</Label>
+              <Input value={restaurantInfo.landmark || ''} readOnly />
+            </div>
+            <div>
+              <Label>Latitude</Label>
+              <Input value={restaurantInfo.latitude || ''} readOnly />
+            </div>
+            <div>
+              <Label>Longitude</Label>
+              <Input value={restaurantInfo.longitude || ''} readOnly />
+            </div>
+            <div>
+              <Label>Packaging Charge</Label>
+              <Input value={restaurantInfo.packaging_charge || ''} readOnly />
             </div>
           </div>
         </CardContent>
