@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Home, Coffee, Utensils, ShoppingCart, Menu as MenuIcon, X } from 'lucide-react';
@@ -23,7 +22,7 @@ const AssistiveTouch = () => {
   
   const navigate = useNavigate();
   const location = useLocation();
-  const { smoothNavigate } = useSmoothNavigation();
+  const { smoothNavigate } = useSmoothNavigation(navigate);
   const { currentRestaurant } = useRestaurant();
   const { data: categories } = useMenuCategories(currentRestaurant?.id);
 
