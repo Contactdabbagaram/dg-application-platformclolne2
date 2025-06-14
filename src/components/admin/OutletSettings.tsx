@@ -171,11 +171,11 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="store-name">Store Name</Label>
-                          <Input id="store-name" defaultValue={outletName} />
+                          <Input id="store-name" defaultValue={outletData?.name || outletName} />
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="store-code">Store Code</Label>
-                          <Input id="store-code" defaultValue="DG-AIR-001" />
+                          <Input id="store-code" defaultValue={outletData?.store_code || "DG-AIR-001"} />
                         </div>
                       </div>
                       
@@ -190,7 +190,7 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
                       
                       <div className="flex items-center justify-between">
                         <Label htmlFor="active">Store Active</Label>
-                        <Switch id="active" defaultChecked />
+                        <Switch id="active" defaultChecked={outletData?.is_active ?? true} />
                       </div>
                     </div>
                   )}
@@ -202,7 +202,7 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
                         <Label htmlFor="address">Complete Address</Label>
                         <Textarea 
                           id="address" 
-                          defaultValue="Shop No. 15, Ground Floor, Sector 8, Airoli, Navi Mumbai, Maharashtra 400708"
+                          defaultValue={outletData?.address || "Shop No. 15, Ground Floor, Sector 8, Airoli, Navi Mumbai, Maharashtra 400708"}
                         />
                       </div>
                       

@@ -1197,6 +1197,7 @@ export type Database = {
           phone: string | null
           restaurant_id: string | null
           service_area_type: string
+          store_code: string | null
           updated_at: string | null
         }
         Insert: {
@@ -1221,6 +1222,7 @@ export type Database = {
           phone?: string | null
           restaurant_id?: string | null
           service_area_type?: string
+          store_code?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -1245,6 +1247,7 @@ export type Database = {
           phone?: string | null
           restaurant_id?: string | null
           service_area_type?: string
+          store_code?: string | null
           updated_at?: string | null
         }
         Relationships: [
