@@ -4,13 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useStoreData } from '@/hooks/useStoreData';
+import { supabase } from '@/integrations/supabase/client';
 import { MapPin, Clock, Phone, Mail, Store, Settings, RefreshCw } from 'lucide-react';
 
 interface OutletDashboardProps {
   outletName: string;
+  outletId: string;
 }
 
-const OutletDashboard = ({ outletName }: OutletDashboardProps) => {
+const OutletDashboard = ({ outletName, outletId }: OutletDashboardProps) => {
+  const [outletData, setOutletData] = useState<any>(null);
+  
   // Map outlet names to restaurant IDs
   const getRestaurantId = (outletName: string) => {
     const mapping = {
@@ -23,6 +27,22 @@ const OutletDashboard = ({ outletName }: OutletDashboardProps) => {
 
   const restaurantId = getRestaurantId(outletName);
   const { storeData, loading, error, refetch } = useStoreData(restaurantId);
+
+  useEffect(() => {
+    const fetchOutletData = async () => {
+      if (outletId) {
+        const { data: outlet } = await supabase
+          .from('outlets')
+          .select('*')
+          .eq('id', outletId)
+          .single();
+        
+        setOutletData(outlet);
+      }
+    };
+
+    fetchOutletData();
+  }, [outletId]);
 
   if (loading) {
     return (
@@ -66,6 +86,14 @@ const OutletDashboard = ({ outletName }: OutletDashboardProps) => {
             <Badge variant={restaurant?.status === 'active' ? 'default' : 'secondary'} className="ml-2">
               {restaurant?.status || 'Unknown'}
             </Badge>
+            {outletData?.petpooja_restaurant_id && (
+              <>
+                | PetPooja ID: 
+                <Badge variant="outline" className="ml-2">
+                  {outletData.petpooja_restaurant_id}
+                </Badge>
+              </>
+            )}
           </p>
         </div>
         <Button onClick={() => refetch()} variant="outline">
@@ -125,7 +153,7 @@ const OutletDashboard = ({ outletName }: OutletDashboardProps) => {
         </Card>
       </div>
 
-      {/* Restaurant Details */}
+      {/* Restaurant and Outlet Details */}
       {restaurant && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card>
@@ -158,15 +186,22 @@ const OutletDashboard = ({ outletName }: OutletDashboardProps) => {
                   <p className="text-gray-600">{restaurant.currency_symbol || '₹'}</p>
                 </div>
                 <div>
-                  <span className="font-medium">Petpooja ID:</span>
-                  <p className="text-gray-600">{restaurant.petpooja_restaurant_id || 'Not configured'}</p>
+                  <span className="font-medium">Outlet Name:</span>
+                  <p className="text-gray-600">{outletData?.name || outletName}</p>
                 </div>
               </div>
               
               {restaurant.address && (
                 <div>
-                  <span className="font-medium">Address:</span>
+                  <span className="font-medium">Restaurant Address:</span>
                   <p className="text-gray-600 mt-1">{restaurant.address}</p>
+                </div>
+              )}
+
+              {outletData?.address && (
+                <div>
+                  <span className="font-medium">Outlet Address:</span>
+                  <p className="text-gray-600 mt-1">{outletData.address}</p>
                 </div>
               )}
 
@@ -242,9 +277,18 @@ const OutletDashboard = ({ outletName }: OutletDashboardProps) => {
 
               {restaurant.latitude && restaurant.longitude && (
                 <div>
-                  <span className="font-medium">Location:</span>
+                  <span className="font-medium">Restaurant Location:</span>
                   <p className="text-gray-600 mt-1">
                     {restaurant.latitude.toFixed(6)}, {restaurant.longitude.toFixed(6)}
+                  </p>
+                </div>
+              )}
+
+              {outletData?.latitude && outletData?.longitude && (
+                <div>
+                  <span className="font-medium">Outlet Location:</span>
+                  <p className="text-gray-600 mt-1">
+                    {outletData.latitude.toFixed(6)}, {outletData.longitude.toFixed(6)}
                   </p>
                 </div>
               )}

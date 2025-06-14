@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePetpoojaStore } from '@/hooks/usePetpoojaStore';
 import { usePetpoojaSync } from '@/hooks/usePetpoojaSync';
 import { useStoreData } from '@/hooks/useStoreData';
+import { supabase } from '@/integrations/supabase/client';
 import StoreOverview from './store/StoreOverview';
 import StoreMenuData from './store/StoreMenuData';
 import StoreTaxData from './store/StoreTaxData';
@@ -19,9 +20,10 @@ import { Settings, Database, RefreshCw, Save } from 'lucide-react';
 
 interface StoreSettingsProps {
   restaurantId: string;
+  outletId: string;
 }
 
-const StoreSettings = ({ restaurantId }: StoreSettingsProps) => {
+const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
   const [petpoojaConfig, setPetpoojaConfig] = useState({
     restaurantId: '',
     appKey: '',
@@ -35,19 +37,32 @@ const StoreSettings = ({ restaurantId }: StoreSettingsProps) => {
   const { storeData, loading: dataLoading, refetch } = useStoreData(restaurantId);
 
   useEffect(() => {
-    if (storeData?.restaurant) {
-      setPetpoojaConfig({
-        restaurantId: storeData.restaurant.petpooja_restaurant_id || '',
-        appKey: storeData.restaurant.petpooja_app_key || '',
-        appSecret: storeData.restaurant.petpooja_app_secret || '',
-        accessToken: storeData.restaurant.petpooja_access_token || ''
-      });
+    // Fetch outlet-specific PetPooja credentials
+    const fetchOutletConfig = async () => {
+      const { data: outlet } = await supabase
+        .from('outlets')
+        .select('petpooja_restaurant_id, petpooja_app_key, petpooja_app_secret, petpooja_access_token')
+        .eq('id', outletId)
+        .single();
+
+      if (outlet) {
+        setPetpoojaConfig({
+          restaurantId: outlet.petpooja_restaurant_id || '',
+          appKey: outlet.petpooja_app_key || '',
+          appSecret: outlet.petpooja_app_secret || '',
+          accessToken: outlet.petpooja_access_token || ''
+        });
+      }
+    };
+
+    if (outletId) {
+      fetchOutletConfig();
     }
-  }, [storeData?.restaurant]);
+  }, [outletId]);
 
   const handleSaveConfig = async () => {
     try {
-      await saveStoreConfig(restaurantId, petpoojaConfig);
+      await saveStoreConfig(outletId, petpoojaConfig);
       toast({
         title: 'Configuration Saved',
         description: 'Petpooja API configuration has been saved successfully.',
@@ -63,7 +78,7 @@ const StoreSettings = ({ restaurantId }: StoreSettingsProps) => {
 
   const handleSync = async (syncType: 'menu' | 'taxes' | 'discounts' | 'all') => {
     try {
-      await triggerSync(restaurantId, syncType);
+      await triggerSync(outletId, syncType);
       toast({
         title: 'Sync Started',
         description: `${syncType === 'all' ? 'Full' : syncType} sync has been initiated.`,
@@ -79,12 +94,14 @@ const StoreSettings = ({ restaurantId }: StoreSettingsProps) => {
     }
   };
 
+  const hasValidConfig = petpoojaConfig.restaurantId && petpoojaConfig.appKey && petpoojaConfig.appSecret;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Store Management</h1>
-        <Badge variant={storeData?.restaurant ? "default" : "secondary"}>
-          {storeData?.restaurant ? "Configured" : "Not Configured"}
+        <Badge variant={hasValidConfig ? "default" : "secondary"}>
+          {hasValidConfig ? "Configured" : "Not Configured"}
         </Badge>
       </div>
 
@@ -132,7 +149,7 @@ const StoreSettings = ({ restaurantId }: StoreSettingsProps) => {
 
         <TabsContent value="sync">
           <StoreSyncDashboard 
-            restaurantId={restaurantId}
+            outletId={outletId}
             syncStatus={syncStatus}
             onSync={handleSync}
             loading={syncLoading}
@@ -197,7 +214,7 @@ const StoreSettings = ({ restaurantId }: StoreSettingsProps) => {
                 <Button 
                   variant="outline" 
                   onClick={() => handleSync('all')} 
-                  disabled={syncLoading || !petpoojaConfig.restaurantId}
+                  disabled={syncLoading || !hasValidConfig}
                 >
                   <RefreshCw className="h-4 w-4 mr-2" />
                   Test & Sync All Data

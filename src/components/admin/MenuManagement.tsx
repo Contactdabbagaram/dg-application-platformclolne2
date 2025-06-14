@@ -9,7 +9,11 @@ import { useMenuCategories, useMenuItems } from '@/hooks/useMenu';
 import PetpoojaSyncButton from '@/components/PetpoojaSyncButton';
 import { Plus, Search, Filter, Edit, Trash2 } from 'lucide-react';
 
-const MenuManagement = () => {
+interface MenuManagementProps {
+  outletId: string;
+}
+
+const MenuManagement = ({ outletId }: MenuManagementProps) => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
@@ -21,7 +25,7 @@ const MenuManagement = () => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-bold">Menu Management</h2>
-          <PetpoojaSyncButton restaurantId="restaurant-1" syncType="menu" />
+          <PetpoojaSyncButton outletId={outletId} syncType="menu" />
         </div>
         <Button>
           <Plus className="h-4 w-4 mr-2" />
