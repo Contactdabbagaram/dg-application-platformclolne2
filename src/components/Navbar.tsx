@@ -1,17 +1,25 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Menu, X, ShoppingCart, User, LogOut } from 'lucide-react';
+import { Menu, X, ShoppingCart, User, LogOut, ChevronDown } from 'lucide-react';
 import { useFrontendSettings } from '@/hooks/useFrontendSettings';
 import { useRestaurant } from '@/contexts/RestaurantContext';
 import { useSmoothNavigation } from '@/hooks/useSmoothNavigation';
+import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { supabase } from '@/integrations/supabase/client';
 import { Link } from 'react-router-dom';
 import LocationSearch from '@/components/LocationSearch';
 
+// Colors from the reference image and fallback if not set
+const LOCATION_BAR_COLOR = "#8BC34A";  // Green - matches reference screenshot
+const LOCATION_TEXT_COLOR = "#fff";
+
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [locationSheetOpen, setLocationSheetOpen] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
+
   const { currentRestaurant } = useRestaurant();
   const restaurantId = currentRestaurant?.id || '';
   const { settings } = useFrontendSettings(restaurantId);
@@ -29,6 +37,12 @@ const Navbar = () => {
     { id: 'menu', label: 'Menu', url: '/menu', order: 2 },
     { id: 'support', label: 'Support', url: '/support', order: 3 }
   ];
+
+  // Address to display: selected one, otherwise restaurant's, otherwise fallback
+  const displayedAddress =
+    selectedAddress ||
+    currentRestaurant?.address ||
+    'Select your pickup location';
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -67,24 +81,62 @@ const Navbar = () => {
     smoothNavigate(cartButtonUrl);
   };
 
+  // ----- New: handle location select -----
+  const handleLocationSelect = (location: string) => {
+    setSelectedAddress(location);
+    setLocationSheetOpen(false);
+  };
+
   return (
     <nav className="bg-white shadow-lg sticky top-0 z-50">
-      {/* Top Row - New Layout */}
+      {/* --- Green (location) bar at the top --- */}
       <div
         className="w-full"
         style={{
-          backgroundColor: headerBarColor,
-          color: '#fff',
-          transition: 'background-color 0.3s',
+          backgroundColor: LOCATION_BAR_COLOR,
+          color: LOCATION_TEXT_COLOR
         }}
       >
-        {/* Content Row -- flex-row: left is location search, right is login */}
-        <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-1 text-xs sm:text-sm">
-          {/* Left: Location Search */}
+        <div className="max-w-7xl mx-auto flex justify-between items-center px-4 py-1 text-xs sm:text-sm" style={{ minHeight: 40 }}>
+          {/* Left: PICKUP AT dropdown */}
           <div className="flex items-center">
-            <LocationSearch onLocationSelect={() => {}} />
+            <Sheet open={locationSheetOpen} onOpenChange={setLocationSheetOpen}>
+              <SheetTrigger asChild>
+                <button
+                  className="flex items-center text-white font-semibold focus:outline-none"
+                  aria-label="Change pickup location"
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0,
+                    marginRight: '1rem'
+                  }}
+                  onClick={() => setLocationSheetOpen(true)}
+                >
+                  PICKUP AT
+                  <ChevronDown className="h-4 w-4 ml-1" />
+                </button>
+              </SheetTrigger>
+              <SheetContent side="top" className="max-w-md w-full mx-auto">
+                <SheetHeader>
+                  <SheetTitle>Choose Your Pickup Location</SheetTitle>
+                </SheetHeader>
+                <div className="mt-4">
+                  <LocationSearch onLocationSelect={handleLocationSelect} />
+                </div>
+              </SheetContent>
+            </Sheet>
+            {/* Show selected address - truncated if too long */}
+            <span
+              className="ml-2 truncate max-w-xs text-white font-medium text-sm"
+              title={displayedAddress}
+              style={{maxWidth: 220}}
+            >
+              {displayedAddress}
+            </span>
           </div>
-          {/* Right: Login/User */}
+          {/* Right: Login/User --- unchanged */}
           <div className="flex items-center space-x-2">
             {user ? (
               <div className="flex items-center space-x-2">
