@@ -76,7 +76,9 @@ export const findNearestOutletsDB = async (
 
       const deliveryRadius = outlet.delivery_radius_km || 10.0;
       const isInServiceArea = distance <= deliveryRadius;
-      const estimatedTime = (outlet.estimated_delivery_time_minutes || 30) + Math.round(distance * 2);
+      // Use fallback value of 30 minutes since the field doesn't exist yet
+      const baseDeliveryTime = 30;
+      const estimatedTime = baseDeliveryTime + Math.round(distance * 2);
 
       return {
         ...outlet,
