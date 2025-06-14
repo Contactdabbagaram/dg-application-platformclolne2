@@ -7,7 +7,7 @@ import { useRestaurant } from '@/contexts/RestaurantContext';
 import { useSmoothNavigation } from '@/hooks/useSmoothNavigation';
 import { Sheet, SheetTrigger, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { supabase } from '@/integrations/supabase/client';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import LocationSearch from '@/components/LocationSearch';
 
 // Colors from the reference image and fallback if not set
@@ -23,7 +23,8 @@ const Navbar = () => {
   const { currentRestaurant } = useRestaurant();
   const restaurantId = currentRestaurant?.id || '';
   const { settings } = useFrontendSettings(restaurantId);
-  const { smoothNavigate } = useSmoothNavigation();
+  const navigate = useNavigate();
+  const { smoothNavigate } = useSmoothNavigation(navigate);
 
   const businessName = settings?.business_name || 'DabbaGaram';
   const headerBarColor = settings?.header_bar_color || '#6366F1';
