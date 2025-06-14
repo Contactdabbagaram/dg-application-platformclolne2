@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -76,56 +75,6 @@ const Navbar = () => {
 
   return (
     <nav className="bg-white shadow-lg sticky top-0 z-50">
-      {/* Top Bar with customizable color */}
-      <div style={{ backgroundColor: headerBarColor }} className="text-white py-2">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center text-sm">
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center">
-                <Phone className="h-4 w-4 mr-2" />
-                <span>{contactPhone}</span>
-              </div>
-              <div className="hidden md:flex items-center">
-                <MapPin className="h-4 w-4 mr-2" />
-                <span>{deliveryRadiusText}</span>
-              </div>
-            </div>
-            <div className="flex items-center space-x-2">
-              {user ? (
-                <div className="flex items-center space-x-2">
-                  <div className="flex items-center space-x-1">
-                    <User className="h-4 w-4" />
-                    <span className="hidden sm:inline">{user.email}</span>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleLogout}
-                    className="text-white hover:bg-white/10 p-1"
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center space-x-2">
-                  <Badge variant="secondary" className="bg-white/90 text-indigo-600 hidden sm:block">
-                    {orderCutoffText}
-                  </Badge>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleLogin}
-                    className="text-white hover:bg-white/10"
-                  >
-                    Login
-                  </Button>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Main Navigation */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
