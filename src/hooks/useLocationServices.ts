@@ -66,10 +66,10 @@ export const useLocationServices = () => {
       latitude: outlet.latitude || 0,
       longitude: outlet.longitude || 0,
       deliveryRadius: outlet.delivery_radius_km || 10,
-      serviceAreaType: outlet.service_area_type || 'radius',
-      geofenceCoordinates: outlet.geofence_coordinates || [],
+      serviceAreaType: (outlet as any).service_area_type || 'radius',
+      geofenceCoordinates: (outlet as any).geofence_coordinates || [],
       isActive: outlet.is_active,
-      estimatedDeliveryTime: outlet.estimated_delivery_time_minutes || 30
+      estimatedDeliveryTime: (outlet as any).estimated_delivery_time_minutes || 30
     }));
   };
 

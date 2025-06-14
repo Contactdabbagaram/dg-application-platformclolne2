@@ -14,6 +14,9 @@ export interface OutletLocation {
   geofenceCoordinates?: GeofencePoint[];
   isActive: boolean;
   estimatedDeliveryTime?: number;
+  // Add missing properties that are computed dynamically
+  distance?: number;
+  isInServiceArea?: boolean;
 }
 
 export interface CustomerLocation {
@@ -104,7 +107,7 @@ export const findNearestOutlets = (
   customerLocation: CustomerLocation,
   outlets: OutletLocation[],
   limit: number = 5
-) => {
+): (OutletLocation & { distance: number; isInServiceArea: boolean; estimatedDeliveryTime: number })[] => {
   return outlets
     .filter(outlet => outlet.isActive)
     .map(outlet => {

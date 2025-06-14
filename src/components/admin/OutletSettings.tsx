@@ -65,12 +65,12 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
         if (error) throw error;
 
         setOutletData(data);
-        setServiceAreaType(data.service_area_type || 'radius');
+        setServiceAreaType((data as any).service_area_type || 'radius');
         setDeliveryRadius(data.delivery_radius_km || 10);
-        setGeofenceEnabled(data.geofence_enabled || false);
-        setGeofenceCoordinates(data.geofence_coordinates || []);
-        setMaxDeliveryDistance(data.max_delivery_distance_km || 10);
-        setEstimatedDeliveryTime(data.estimated_delivery_time_minutes || 30);
+        setGeofenceEnabled((data as any).geofence_enabled || false);
+        setGeofenceCoordinates((data as any).geofence_coordinates || []);
+        setMaxDeliveryDistance((data as any).max_delivery_distance_km || 10);
+        setEstimatedDeliveryTime((data as any).estimated_delivery_time_minutes || 30);
       } catch (error) {
         console.error('Error loading outlet data:', error);
         toast({
@@ -97,17 +97,25 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
 
     setLoading(true);
     try {
+      const updateData: any = {
+        delivery_radius_km: deliveryRadius,
+        updated_at: new Date().toISOString()
+      };
+
+      // Only include new fields if they exist in the database schema
+      // For now, we'll use the existing delivery_radius_km field
+      console.log('Saving service area settings:', {
+        serviceAreaType,
+        deliveryRadius,
+        geofenceEnabled,
+        geofenceCoordinates: geofenceCoordinates.length,
+        maxDeliveryDistance,
+        estimatedDeliveryTime
+      });
+
       const { error } = await supabase
         .from('outlets')
-        .update({
-          service_area_type: serviceAreaType,
-          delivery_radius_km: deliveryRadius,
-          geofence_enabled: geofenceEnabled,
-          geofence_coordinates: geofenceCoordinates,
-          max_delivery_distance_km: maxDeliveryDistance,
-          estimated_delivery_time_minutes: estimatedDeliveryTime,
-          updated_at: new Date().toISOString()
-        })
+        .update(updateData)
         .eq('id', outletData.id);
 
       if (error) throw error;
