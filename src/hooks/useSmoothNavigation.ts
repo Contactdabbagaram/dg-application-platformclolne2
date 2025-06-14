@@ -1,10 +1,9 @@
 
-import { useNavigate } from 'react-router-dom';
 import { usePageTransition } from '@/contexts/PageTransitionContext';
 import { useCallback } from 'react';
+import { NavigateFunction } from 'react-router-dom';
 
-export const useSmoothNavigation = () => {
-  const navigate = useNavigate();
+export const useSmoothNavigation = (navigate: NavigateFunction) => {
   const { startTransition, endTransition } = usePageTransition();
 
   const smoothNavigate = useCallback((path: string) => {
