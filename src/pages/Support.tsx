@@ -20,7 +20,7 @@ const Support = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header Section */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-        <div className="container mx-auto px-4 py-8 mt-16">
+        <div className="container mx-auto px-4 py-8">
           {/* Contact Info Bar */}
           <div className="flex flex-col sm:flex-row items-center justify-between mb-6 text-sm">
             <div className="flex items-center gap-4 mb-2 sm:mb-0">
