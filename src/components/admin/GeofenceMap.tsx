@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Plus, Trash2, Eye, EyeOff } from 'lucide-react';
+import { MapPin, Plus, Trash2 } from 'lucide-react';
+import InteractiveGeofenceMap from './InteractiveGeofenceMap';
 
 interface GeofencePoint {
   lat: number;
@@ -33,7 +34,6 @@ const GeofenceMap = ({
 }: GeofenceMapProps) => {
   const [coordinates, setCoordinates] = useState<GeofencePoint[]>(geofenceCoordinates);
   const [radius, setRadius] = useState(deliveryRadius);
-  const [showPreview, setShowPreview] = useState(true);
   const [newPoint, setNewPoint] = useState({ lat: '', lng: '' });
 
   useEffect(() => {
@@ -68,6 +68,11 @@ const GeofenceMap = ({
     onRadiusChange?.(value);
   };
 
+  const handleGeofenceChange = (newCoordinates: GeofencePoint[]) => {
+    setCoordinates(newCoordinates);
+    onGeofenceChange?.(newCoordinates);
+  };
+
   const generateCirclePoints = () => {
     const points: GeofencePoint[] = [];
     const numPoints = 16;
@@ -80,62 +85,21 @@ const GeofenceMap = ({
       points.push({ lat, lng });
     }
     
-    setCoordinates(points);
-    onGeofenceChange?.(points);
+    handleGeofenceChange(points);
   };
 
   return (
     <div className="space-y-6">
-      {/* Map Placeholder - In production, integrate with Google Maps or similar */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              Service Area Visualization
-            </CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowPreview(!showPreview)}
-            >
-              {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              {showPreview ? 'Hide' : 'Show'} Preview
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg p-8 text-center min-h-[300px] flex items-center justify-center">
-            <div className="space-y-4">
-              <MapPin className="h-12 w-12 text-gray-400 mx-auto" />
-              <div>
-                <h3 className="font-medium text-gray-900">Interactive Map</h3>
-                <p className="text-sm text-gray-600">
-                  Map integration with Google Maps will be displayed here
-                </p>
-                <div className="mt-4 space-y-2 text-sm">
-                  <div>
-                    <Badge variant="outline">Outlet Location</Badge>
-                    <span className="ml-2">{outletLatitude}, {outletLongitude}</span>
-                  </div>
-                  {serviceAreaType === 'radius' && (
-                    <div>
-                      <Badge variant="secondary">Delivery Radius</Badge>
-                      <span className="ml-2">{radius} km</span>
-                    </div>
-                  )}
-                  {serviceAreaType === 'geofence' && coordinates.length > 0 && (
-                    <div>
-                      <Badge variant="default">Geofence Points</Badge>
-                      <span className="ml-2">{coordinates.length} points defined</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Interactive Google Maps Component */}
+      <InteractiveGeofenceMap
+        outletLatitude={outletLatitude}
+        outletLongitude={outletLongitude}
+        geofenceCoordinates={coordinates}
+        deliveryRadius={radius}
+        onGeofenceChange={handleGeofenceChange}
+        onRadiusChange={handleRadiusChange}
+        serviceAreaType={serviceAreaType}
+      />
 
       {serviceAreaType === 'radius' && (
         <Card>
@@ -164,9 +128,9 @@ const GeofenceMap = ({
       {serviceAreaType === 'geofence' && (
         <Card>
           <CardHeader>
-            <CardTitle>Geofence Points</CardTitle>
+            <CardTitle>Manual Coordinate Entry</CardTitle>
             <p className="text-sm text-gray-600">
-              Define custom polygon boundaries for your delivery area
+              You can also manually add coordinates or use the interactive map above
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -196,7 +160,7 @@ const GeofenceMap = ({
             </div>
             <Button onClick={addPoint} className="w-full">
               <Plus className="h-4 w-4 mr-2" />
-              Add Point
+              Add Point Manually
             </Button>
 
             {coordinates.length > 0 && (
