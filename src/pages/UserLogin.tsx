@@ -3,12 +3,16 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { LogIn, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const UserLogin = () => {
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -23,6 +27,56 @@ const UserLogin = () => {
     checkAuth();
   }, [navigate]);
 
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      toast({
+        title: "Login Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Login Successful",
+        description: "Redirecting to homepage...",
+      });
+      navigate('/');
+    }
+    setLoading(false);
+  };
+  
+  const handleSignUp = async () => {
+    setLoading(true);
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/`
+      }
+    });
+    setLoading(false);
+
+    if (error) {
+      toast({
+        title: "Sign Up Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Sign Up Successful",
+        description: "Please check your email to confirm your account before logging in.",
+      });
+    }
+  };
+
+  /*
   const handleGoogleLogin = async () => {
     setLoading(true);
 
@@ -55,6 +109,7 @@ const UserLogin = () => {
       setLoading(false);
     }
   };
+  */
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-100 flex items-center justify-center p-4">
@@ -67,9 +122,43 @@ const UserLogin = () => {
             <span className="text-2xl font-bold text-gray-800">DabbaGaram</span>
           </div>
           <CardTitle className="text-xl">User Login</CardTitle>
-          <p className="text-gray-600">Sign in with Google to order delicious food</p>
+          <CardDescription>Sign in to order delicious food</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <form onSubmit={handleEmailLogin} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="m@example.com"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input 
+                id="password" 
+                type="password" 
+                required 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+              />
+            </div>
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Signing in...' : 'Sign In'}
+            </Button>
+          </form>
+
+          <Button variant="outline" onClick={handleSignUp} className="w-full -mt-2" disabled={loading}>
+            Sign Up
+          </Button>
+
+          {/*
           <Button 
             onClick={handleGoogleLogin} 
             className="w-full" 
@@ -94,6 +183,7 @@ const UserLogin = () => {
               </div>
             )}
           </Button>
+          */}
 
           <Button
             variant="link"
