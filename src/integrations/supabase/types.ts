@@ -9,6 +9,42 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      business_settings: {
+        Row: {
+          business_address: string | null
+          business_email: string | null
+          business_name: string | null
+          business_phone: string | null
+          created_at: string
+          distance_calculation_method: string | null
+          google_maps_api_key: string | null
+          restaurant_id: string
+          updated_at: string
+        }
+        Insert: {
+          business_address?: string | null
+          business_email?: string | null
+          business_name?: string | null
+          business_phone?: string | null
+          created_at?: string
+          distance_calculation_method?: string | null
+          google_maps_api_key?: string | null
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Update: {
+          business_address?: string | null
+          business_email?: string | null
+          business_name?: string | null
+          business_phone?: string | null
+          created_at?: string
+          distance_calculation_method?: string | null
+          google_maps_api_key?: string | null
+          restaurant_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       category_images: {
         Row: {
           category_name: string

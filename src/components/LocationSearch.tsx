@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { MapPin, Navigation, Loader2 } from 'lucide-react';
+import { MapPin, Navigation, Loader2, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useBusinessSettings } from '@/hooks/useBusinessSettings';
 
 interface LocationSearchProps {
   onLocationSelect: (location: string) => void;
@@ -15,66 +16,66 @@ declare global {
   }
 }
 
-// IMPORTANT: This API key is hardcoded and visible in the frontend code.
-// For production, it's crucial to restrict this key on the Google Cloud Console
-// (e.g., to specific HTTP referrers) and consider moving it to a backend or environment variable.
-const GOOGLE_MAPS_API_KEY = 'AIzaSyASu7HI6LlX0fwcRRfkm4JUbrGtvrJ8c4c'; 
-
 const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [googleMapsLoaded, setGoogleMapsLoaded] = useState(false);
-  const [isLoadingMaps, setIsLoadingMaps] = useState(false);
-  
+  const [isLoadingMapsScript, setIsLoadingMapsScript] = useState(true);
+  const [apiKey, setApiKey] = useState<string | null>(null);
+
   const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null);
   const placesService = useRef<google.maps.places.PlacesService | null>(null);
   const [sessionToken, setSessionToken] = useState<google.maps.places.AutocompleteSessionToken | null>(null);
   
   const { toast } = useToast();
+  const { data: businessSettings, isLoading: isLoadingSettings } = useBusinessSettings();
 
   useEffect(() => {
+    if (businessSettings?.googleMapsApiKey) {
+      setApiKey(businessSettings.googleMapsApiKey);
+    } else if (!isLoadingSettings && !businessSettings?.googleMapsApiKey) {
+      console.warn('Google Maps API Key is not configured in business settings.');
+      setIsLoadingMapsScript(false);
+    }
+  }, [businessSettings, isLoadingSettings]);
+
+  useEffect(() => {
+    if (!apiKey) {
+      if (!isLoadingSettings) {
+        setIsLoadingMapsScript(false);
+      }
+      return;
+    }
+
     const loadGoogleMaps = async () => {
       try {
         if (window.google && window.google.maps && window.google.maps.places) {
           initializeServices();
+          setIsLoadingMapsScript(false);
           return;
         }
 
-        console.log('Loading Google Maps...');
-        setIsLoadingMaps(true);
+        console.log('Loading Google Maps with key:', apiKey ? '******' : 'undefined');
+        setIsLoadingMapsScript(true);
 
         const existingScript = document.querySelector('script[src*="maps.googleapis.com"]');
         if (existingScript) {
           existingScript.remove();
+          console.log('Removed existing Google Maps script.');
         }
 
-        const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&v=weekly`;
-        script.async = true;
-        script.defer = true;
-        
-        window.initGoogleMaps = () => { // This callback might not be strictly necessary if script.onload works reliably
-          console.log('Google Maps loaded via initGoogleMaps callback');
+        const callbackName = `initGoogleMaps_${Date.now()}`;
+        window[callbackName] = () => {
+          console.log('Google Maps loaded via dynamic callback');
           initializeServices();
-          setIsLoadingMaps(false);
+          setIsLoadingMapsScript(false);
+          delete window[callbackName];
         };
 
-        script.onload = () => {
-          if (window.google && window.google.maps && window.google.maps.places) {
-            console.log('Google Maps script loaded successfully via onload');
-            initializeServices();
-          } else {
-            console.error('Google Maps loaded, but window.google.maps.places is not available.');
-             toast({
-              title: "Google Maps API Error",
-              description: "Failed to initialize Google Maps Places service. Ensure the API key is correct and Places API is enabled.",
-              variant: "destructive",
-            });
-          }
-          setIsLoadingMaps(false);
-        };
-        
+        const script = document.createElement('script');
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&v=weekly&callback=${callbackName}`;
+        script.async = true;
         script.onerror = () => {
           console.error('Error loading Google Maps script');
           toast({
@@ -82,7 +83,8 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
             description: "Could not load the Google Maps script. Please check your internet connection and API key configuration.",
             variant: "destructive",
           });
-          setIsLoadingMaps(false);
+          setIsLoadingMapsScript(false);
+          delete window[callbackName];
         };
 
         document.head.appendChild(script);
@@ -93,12 +95,28 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
           description: "Could not initialize location search. Please try again later.",
           variant: "destructive",
         });
-        setIsLoadingMaps(false);
+        setIsLoadingMapsScript(false);
       }
     };
 
     loadGoogleMaps();
-  }, [toast]);
+    
+    return () => {
+      // const scriptToRemove = document.querySelector(`script[src*="maps.googleapis.com/maps/api/js?key=${apiKey}"]`);
+      // if (scriptToRemove) {
+      //     scriptToRemove.remove();
+      //     console.log('Cleaned up Google Maps script.');
+      // }
+      // It's generally safer not to remove the script if other components might use it,
+      // unless you have a global script loading manager.
+      // For now, focus on callback cleanup.
+      Object.keys(window).forEach(key => {
+        if (key.startsWith('initGoogleMaps_')) {
+          delete window[key];
+        }
+      });
+    };
+  }, [apiKey, toast]);
 
   const initializeServices = () => {
     if (window.google && window.google.maps && window.google.maps.places) {
@@ -108,7 +126,9 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
       // Initialize PlacesService
       // PlacesService requires a map instance or an HTMLDivElement to attach to, even if not displayed.
       const mapDiv = document.createElement('div'); 
+      document.body.appendChild(mapDiv);
       placesService.current = new window.google.maps.places.PlacesService(mapDiv);
+      mapDiv.remove();
       
       setGoogleMapsLoaded(true);
       console.log('Google Maps Autocomplete and Places services initialized.');
@@ -287,9 +307,9 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
             className="pr-10"
-            disabled={isLoadingMaps || !googleMapsLoaded}
+            disabled={isLoadingMapsScript || !googleMapsLoaded || isLoadingSettings || !apiKey}
           />
-          {isLoading && (
+          {isLoading && !isLoadingMapsScript && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2">
               <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
             </div>
@@ -299,13 +319,12 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
           variant="outline" 
           size="icon"
           onClick={getCurrentLocation}
-          disabled={isLoadingMaps || isLoading || !googleMapsLoaded}
+          disabled={isLoadingMapsScript || isLoading || !googleMapsLoaded || isLoadingSettings || !apiKey}
         >
           <Navigation className="h-4 w-4" />
         </Button>
       </div>
 
-      {/* Suggestions dropdown */}
       {suggestions.length > 0 && (
         <div className="absolute z-10 w-full max-w-md bg-white rounded-md shadow-lg border mt-1">
           <ul className="py-1">
@@ -323,16 +342,22 @@ const LocationSearch = ({ onLocationSelect }: LocationSearchProps) => {
         </div>
       )}
 
-      {isLoadingMaps && (
+      {(isLoadingSettings || isLoadingMapsScript) && !googleMapsLoaded && (
         <div className="flex items-center gap-2 text-sm text-gray-500 mt-2">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>Loading location service...</span>
         </div>
       )}
-       {!googleMapsLoaded && !isLoadingMaps && (
+       {!isLoadingSettings && !apiKey && !isLoadingMapsScript && (
         <div className="flex items-center gap-2 text-sm text-red-500 mt-2">
-          {/* <AlertCircle className="h-4 w-4" /> Re-add if needed */}
-          <span>Location service failed to load. Please check API key or try again.</span>
+          <AlertCircle className="h-4 w-4" />
+          <span>Google Maps API Key not configured. Please set it in Business Settings.</span>
+        </div>
+      )}
+       {!isLoadingMapsScript && !googleMapsLoaded && apiKey && (
+        <div className="flex items-center gap-2 text-sm text-red-500 mt-2">
+          <AlertCircle className="h-4 w-4" />
+          <span>Location service failed to load. Check API key or try refreshing.</span>
         </div>
       )}
     </div>
