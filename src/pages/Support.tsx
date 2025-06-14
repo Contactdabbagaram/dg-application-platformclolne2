@@ -1,6 +1,4 @@
-
 import { useState } from 'react';
-import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { SupportChat } from '@/components/support/SupportChat';
 import { OrderTracker } from '@/components/support/OrderTracker';
@@ -20,8 +18,6 @@ const Support = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      
       {/* Header Section */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
         <div className="container mx-auto px-4 py-8 mt-16">
