@@ -53,7 +53,7 @@ const StoreOverview = ({ restaurant, loading, onRefresh }: StoreOverviewProps) =
         <CardContent className="text-center py-8">
           <Store className="h-12 w-12 mx-auto text-gray-400 mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No Restaurant Data</h3>
-          <p className="text-gray-500 mb-4">Please configure your Petpooja API settings to sync restaurant data.</p>
+          <p className="text-gray-500 mb-4">No restaurant is linked to this outlet. Please link a restaurant to view data.</p>
           <Button onClick={onRefresh}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh Data
@@ -83,19 +83,19 @@ const StoreOverview = ({ restaurant, loading, onRefresh }: StoreOverviewProps) =
           </CardHeader>
           <CardContent className="space-y-2">
             <div>
-              <span className="font-medium">Name:</span> {restaurant.name}
+              <span className="font-medium">Name:</span> {restaurant.name || 'Not set'}
             </div>
             <div>
               <span className="font-medium">Status:</span>
               <Badge variant={restaurant.status === 'active' ? 'default' : 'secondary'} className="ml-2">
-                {restaurant.status}
+                {restaurant.status || 'Unknown'}
               </Badge>
             </div>
             <div>
               <span className="font-medium">Petpooja ID:</span> {restaurant.petpooja_restaurant_id || 'Not set'}
             </div>
             <div>
-              <span className="font-medium">Currency:</span> {restaurant.currency_symbol || '₹'}
+              <span className="font-medium">Currency:</span> {restaurant.currency_symbol || 'Not set'}
             </div>
           </CardContent>
         </Card>
@@ -118,7 +118,7 @@ const StoreOverview = ({ restaurant, loading, onRefresh }: StoreOverviewProps) =
               <span className="font-medium">State:</span> {restaurant.state || 'Not set'}
             </div>
             <div>
-              <span className="font-medium">Country:</span> {restaurant.country || 'India'}
+              <span className="font-medium">Country:</span> {restaurant.country || 'Not set'}
             </div>
             {restaurant.latitude && restaurant.longitude && (
               <div>
@@ -137,16 +137,16 @@ const StoreOverview = ({ restaurant, loading, onRefresh }: StoreOverviewProps) =
           </CardHeader>
           <CardContent className="space-y-2">
             <div>
-              <span className="font-medium">Min Order Amount:</span> {restaurant.currency_symbol}{restaurant.minimum_order_amount || 0}
+              <span className="font-medium">Min Order Amount:</span> {restaurant.currency_symbol || ''}{restaurant.minimum_order_amount || 'Not set'}
             </div>
             <div>
-              <span className="font-medium">Min Prep Time:</span> {restaurant.minimum_prep_time || 30} mins
+              <span className="font-medium">Min Prep Time:</span> {restaurant.minimum_prep_time ? `${restaurant.minimum_prep_time} mins` : 'Not set'}
             </div>
             <div>
               <span className="font-medium">Delivery Time:</span> {restaurant.minimum_delivery_time || 'Not set'}
             </div>
             <div>
-              <span className="font-medium">Delivery Charge:</span> {restaurant.currency_symbol}{restaurant.delivery_charge || 0}
+              <span className="font-medium">Delivery Charge:</span> {restaurant.currency_symbol || ''}{restaurant.delivery_charge || 'Not set'}
             </div>
           </CardContent>
         </Card>

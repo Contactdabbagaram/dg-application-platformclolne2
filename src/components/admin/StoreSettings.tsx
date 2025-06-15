@@ -42,6 +42,7 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
     saving: contextSaving,
     storeData,
     storeLoading: dataLoading,
+    storeError,
     refetchStoreData: refetch,
     restaurant: restaurantInfo,
     loading: outletLoading,
@@ -53,18 +54,20 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
 
   useEffect(() => {
     if (outletData) {
-      setStoreCode(outletData.store_code ?? '');
+      setStoreCode(outletData.store_code || '');
     }
   }, [outletData]);
 
   // Load outlet-specific PetPooja credentials
   useEffect(() => {
     const fetchOutletConfig = async () => {
+      if (!outletId) return;
+      
       const { data: outlet } = await supabase
         .from('outlets')
         .select('petpooja_restaurant_id, petpooja_app_key, petpooja_app_secret, petpooja_access_token')
         .eq('id', outletId)
-        .single();
+        .maybeSingle();
 
       if (outlet) {
         setPetpoojaConfig({
@@ -76,9 +79,7 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
       }
     };
 
-    if (outletId) {
-      fetchOutletConfig();
-    }
+    fetchOutletConfig();
   }, [outletId]);
 
   const handleSaveConfig = async () => {
@@ -283,43 +284,55 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
             placeholder="Choose a restaurant to link with this outlet"
           />
           
-          {isRestaurantLinked && restaurantInfo && (
+          {isRestaurantLinked && (
             <div className="mt-6 pt-4 border-t">
               <h4 className="font-medium mb-3">Restaurant Details</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label>Status</Label>
-                  <Input value={restaurantInfo.status || ''} readOnly />
+              {dataLoading ? (
+                <p className="text-gray-600">Loading restaurant data...</p>
+              ) : storeError ? (
+                <p className="text-red-600">Error loading restaurant data: {storeError.message}</p>
+              ) : restaurantInfo ? (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label>Restaurant Name</Label>
+                    <Input value={restaurantInfo.name || ''} readOnly />
+                  </div>
+                  <div>
+                    <Label>Status</Label>
+                    <Input value={restaurantInfo.status || ''} readOnly />
+                  </div>
+                  <div>
+                    <Label>Currency</Label>
+                    <Input value={restaurantInfo.currency_symbol || ''} readOnly />
+                  </div>
+                  <div>
+                    <Label>City</Label>
+                    <Input value={restaurantInfo.city || ''} readOnly />
+                  </div>
+                  <div>
+                    <Label>State</Label>
+                    <Input value={restaurantInfo.state || ''} readOnly />
+                  </div>
+                  <div>
+                    <Label>Country</Label>
+                    <Input value={restaurantInfo.country || ''} readOnly />
+                  </div>
+                  <div>
+                    <Label>Address</Label>
+                    <Input value={restaurantInfo.address || ''} readOnly />
+                  </div>
+                  <div>
+                    <Label>Min Order Amount</Label>
+                    <Input value={restaurantInfo.minimum_order_amount || ''} readOnly />
+                  </div>
+                  <div>
+                    <Label>Delivery Charge</Label>
+                    <Input value={restaurantInfo.delivery_charge || ''} readOnly />
+                  </div>
                 </div>
-                <div>
-                  <Label>Currency</Label>
-                  <Input value={restaurantInfo.currency_symbol || '₹'} readOnly />
-                </div>
-                <div>
-                  <Label>City</Label>
-                  <Input value={restaurantInfo.city || ''} readOnly />
-                </div>
-                <div>
-                  <Label>State</Label>
-                  <Input value={restaurantInfo.state || ''} readOnly />
-                </div>
-                <div>
-                  <Label>Country</Label>
-                  <Input value={restaurantInfo.country || ''} readOnly />
-                </div>
-                <div>
-                  <Label>Address</Label>
-                  <Input value={restaurantInfo.address || ''} readOnly />
-                </div>
-                <div>
-                  <Label>Min Order Amount</Label>
-                  <Input value={restaurantInfo.minimum_order_amount || ''} readOnly />
-                </div>
-                <div>
-                  <Label>Delivery Charge</Label>
-                  <Input value={restaurantInfo.delivery_charge || ''} readOnly />
-                </div>
-              </div>
+              ) : (
+                <p className="text-gray-600">No restaurant data available</p>
+              )}
             </div>
           )}
           
@@ -375,7 +388,7 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
 
           <TabsContent value="overview">
             <StoreOverview 
-              restaurant={storeData?.restaurant} 
+              restaurant={restaurantInfo} 
               loading={dataLoading}
               onRefresh={refetch}
             />

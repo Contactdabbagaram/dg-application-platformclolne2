@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -49,7 +50,7 @@ interface StoreMenuDataProps {
   variations: Variation[];
   addons: AddonGroup[];
   loading: boolean;
-  restaurant?: any; // Added: pass restaurant info from above
+  restaurant?: any;
 }
 
 const StoreMenuData = ({ categories, items, variations, addons, loading, restaurant }: StoreMenuDataProps) => {
@@ -68,12 +69,12 @@ const StoreMenuData = ({ categories, items, variations, addons, loading, restaur
           <div className="flex flex-wrap items-center gap-4 text-blue-900">
             <span className="font-bold text-lg">{restaurant.name}</span>
             <span className="rounded px-2 py-1 bg-blue-200 text-blue-800 text-xs">Restaurant ID: {restaurant.id}</span>
-            <span className="text-gray-700">City: {restaurant.city ?? 'N/A'}</span>
-            <span className="text-gray-700">State: {restaurant.state ?? 'N/A'}</span>
-            <span className="text-gray-700">Min Order: ₹{restaurant.minimum_order_amount ?? 0}</span>
-            <span className="text-gray-700">Delivery Charge: ₹{restaurant.delivery_charge ?? 0}</span>
-            <span className="text-gray-700">Prep Time: {restaurant.minimum_prep_time ?? 30} mins</span>
-            <span className="text-gray-700">Status: <b>{restaurant.status}</b></span>
+            <span className="text-gray-700">City: {restaurant.city || 'Not set'}</span>
+            <span className="text-gray-700">State: {restaurant.state || 'Not set'}</span>
+            <span className="text-gray-700">Min Order: {restaurant.currency_symbol || ''}{restaurant.minimum_order_amount || 'Not set'}</span>
+            <span className="text-gray-700">Delivery Charge: {restaurant.currency_symbol || ''}{restaurant.delivery_charge || 'Not set'}</span>
+            <span className="text-gray-700">Prep Time: {restaurant.minimum_prep_time ? `${restaurant.minimum_prep_time} mins` : 'Not set'}</span>
+            <span className="text-gray-700">Status: <b>{restaurant.status || 'Unknown'}</b></span>
           </div>
         </div>
       )}
@@ -172,7 +173,7 @@ const StoreMenuData = ({ categories, items, variations, addons, loading, restaur
                             <p className="text-sm text-gray-600 mb-2">{item.description}</p>
                           )}
                           <div className="flex items-center justify-between">
-                            <span className="font-semibold">₹{item.price}</span>
+                            <span className="font-semibold">{restaurant?.currency_symbol || ''}{item.price}</span>
                             <div className="flex gap-1">
                               {item.is_vegetarian && (
                                 <Badge variant="secondary" className="text-xs bg-green-100 text-green-800">
@@ -208,7 +209,7 @@ const StoreMenuData = ({ categories, items, variations, addons, loading, restaur
                     </Badge>
                   </div>
                   <div className="space-y-1">
-                    <div>Price: ₹{variation.price}</div>
+                    <div>Price: {restaurant?.currency_symbol || ''}{variation.price}</div>
                     {variation.group_name && (
                       <div className="text-sm text-gray-600">Group: {variation.group_name}</div>
                     )}
@@ -236,7 +237,7 @@ const StoreMenuData = ({ categories, items, variations, addons, loading, restaur
                             {item.is_active ? "Active" : "Inactive"}
                           </Badge>
                         </div>
-                        <div className="mt-1">₹{item.price}</div>
+                        <div className="mt-1">{restaurant?.currency_symbol || ''}{item.price}</div>
                       </div>
                     ))}
                   </div>
