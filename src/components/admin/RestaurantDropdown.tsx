@@ -12,7 +12,6 @@ interface RestaurantDropdownProps {
 interface RestaurantSummary {
   id: string;
   name: string;
-  petpooja_restaurant_id?: string;
 }
 
 const RestaurantDropdown = ({ value, onChange, disabled }: RestaurantDropdownProps) => {
@@ -24,8 +23,9 @@ const RestaurantDropdown = ({ value, onChange, disabled }: RestaurantDropdownPro
       setLoading(true);
       const { data, error } = await supabase
         .from('restaurants')
-        .select('id, name, petpooja_restaurant_id')
+        .select('id, name')
         .order('name');
+
       if (!error && data) setRestaurants(data);
       setLoading(false);
     };
@@ -47,9 +47,6 @@ const RestaurantDropdown = ({ value, onChange, disabled }: RestaurantDropdownPro
           {restaurants.map((r) => (
             <SelectItem key={r.id} value={r.id}>
               {r.name}
-              {r.petpooja_restaurant_id ? (
-                <span className="ml-2 text-xs text-gray-500">(Petpooja ID: {r.petpooja_restaurant_id})</span>
-              ) : null}
             </SelectItem>
           ))}
         </SelectContent>
