@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useStoreData } from '@/hooks/useStoreData';
@@ -125,12 +124,11 @@ export const OutletProvider = ({
   // Get restaurant object only from storeData - no fallbacks
   const restaurant = storeData?.restaurant || null;
 
+  // MODIFICATION: After successfully mapping restaurant, immediately update state and trigger all relevant refetches
   const handleRestaurantChange = async (newRestaurantId: string) => {
     if (!outletId) return;
 
-    console.log('Changing restaurant to:', newRestaurantId);
     setSaving(true);
-    
     try {
       // Validate that the restaurant exists before linking
       const { data: restaurantExists, error: validateError } = await supabase
@@ -148,7 +146,7 @@ export const OutletProvider = ({
         throw new Error('Selected restaurant does not exist');
       }
 
-      // Update the outlet with the new restaurant_id
+      // Update outlet in DB
       const { error: updateError } = await supabase
         .from('outlets')
         .update({
@@ -157,22 +155,20 @@ export const OutletProvider = ({
         })
         .eq('id', outletId);
 
-      if (updateError) {
-        console.error('Error updating outlet:', updateError);
-        throw updateError;
-      }
+      if (updateError) throw updateError;
 
-      console.log('Successfully linked outlet to restaurant');
-
-      // Show success toast
       toast({
         title: 'Restaurant Linked Successfully',
         description: `Outlet has been linked to ${restaurantExists.name}.`,
       });
 
-      // Refetch outlet data to ensure UI is in sync
-      await fetchOutletData();
-      
+      // NEW: Synchronize state and force refetch on all relevant stores and hooks
+      setSelectedRestaurantId(newRestaurantId);
+      setOutletData((prev: any) =>
+        prev ? { ...prev, restaurant_id: newRestaurantId } : prev
+      );
+      fetchOutletData(); // Immediate fetch to sync everything
+      refetchStoreData(); // Force hook to refetch
     } catch (error) {
       console.error('Error linking restaurant:', error);
       toast({

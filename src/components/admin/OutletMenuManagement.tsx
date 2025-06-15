@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -52,7 +51,9 @@ const OutletMenuManagement = ({ outletName, outletId }: OutletMenuManagementProp
               <AlertCircle className="h-6 w-6" />
               <div>
                 <h3 className="font-semibold">No Restaurant Linked</h3>
-                <p>Please link a restaurant to this outlet to manage its menu. You can do this from the 'Dashboard' or 'Store Settings' tabs.</p>
+                <p>
+                  Please link a restaurant to this outlet to manage its menu. You can do this from the 'Dashboard' or 'Store Settings' tabs.
+                </p>
               </div>
             </div>
           </CardContent>
