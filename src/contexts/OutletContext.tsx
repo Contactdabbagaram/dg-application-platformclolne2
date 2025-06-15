@@ -26,7 +26,6 @@ export const OutletProvider = ({
   outletId,
   children,
 }: { outletId: string | null; children: ReactNode }) => {
-  const [selectedRestaurantId, setSelectedRestaurantId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -76,19 +75,15 @@ export const OutletProvider = ({
   });
 
   useEffect(() => {
-    if (outletData) {
-      // This is the source of truth for the linked restaurant ID
-      setSelectedRestaurantId(outletData.restaurant_id || null);
-    }
-  }, [outletData]);
-
-  useEffect(() => {
     if (isError) {
       console.error("Error fetching outlet data:", outletQueryError);
       toast({ title: 'Error', description: 'Could not fetch outlet data.', variant: 'destructive' });
-      setSelectedRestaurantId(null);
     }
   }, [isError, outletQueryError, toast]);
+  
+  // DERIVED STATE: The selected restaurant ID is now derived directly from the query data.
+  // This ensures it's always in sync with the server state.
+  const selectedRestaurantId = outletData?.restaurant_id || null;
 
   // Fetch store data based on selected restaurant
   const {
@@ -100,11 +95,20 @@ export const OutletProvider = ({
 
   const restaurant = storeData?.restaurant || null;
   
-  // Handle linking a restaurant to the outlet
+  // Handle linking a restaurant to the outlet using optimistic updates
   const handleRestaurantChange = async (newRestaurantId: string) => {
     if (!outletId || newRestaurantId === selectedRestaurantId) return;
 
     setSaving(true);
+    
+    // Get the previous data for easy rollback on error
+    const previousOutletData = queryClient.getQueryData(['outletData', outletId]);
+
+    // Optimistically update the UI to the new state
+    queryClient.setQueryData(['outletData', outletId], (oldData: any) => 
+      oldData ? { ...oldData, restaurant_id: newRestaurantId } : oldData
+    );
+
     try {
       const { data: restaurantExists, error: validateError } = await supabase
         .from('restaurants')
@@ -127,20 +131,18 @@ export const OutletProvider = ({
         description: `Outlet has been linked to ${restaurantExists.name}.`,
       });
       
-      // Optimistically update the UI and then invalidate query to refetch in background
-      setSelectedRestaurantId(newRestaurantId);
-      queryClient.invalidateQueries({ queryKey: ['outletData', outletId] });
-
     } catch (error) {
       console.error('Error linking restaurant:', error);
+      // On failure, roll back the optimistic update to the previous state
+      queryClient.setQueryData(['outletData', outletId], previousOutletData);
       toast({
         title: 'Linking Failed',
         description: error instanceof Error ? error.message : 'Failed to link outlet to restaurant.',
         variant: 'destructive',
       });
-      // On failure, refetch to revert to the correct state from DB
-      await queryClient.refetchQueries({ queryKey: ['outletData', outletId] });
     } finally {
+      // Always invalidate the query to ensure data consistency with the server
+      await queryClient.invalidateQueries({ queryKey: ['outletData', outletId] });
       setSaving(false);
     }
   };
@@ -157,7 +159,7 @@ export const OutletProvider = ({
     storeError,
     refetchStoreData,
     restaurant,
-    refetchOutletData, // Now from useQuery
+    refetchOutletData,
   };
 
   return <OutletContext.Provider value={value}>{children}</OutletContext.Provider>;
