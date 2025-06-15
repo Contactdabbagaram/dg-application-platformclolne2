@@ -8,8 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { usePetpoojaStore } from '@/hooks/usePetpoojaStore';
 import { usePetpoojaSync } from '@/hooks/usePetpoojaSync';
-import { useStoreData } from '@/hooks/useStoreData';
-import { supabase } from '@/integrations/supabase/client';
+import { useOutlet } from '@/contexts/OutletContext';
 import StoreOverview from './store/StoreOverview';
 import StoreMenuData from './store/StoreMenuData';
 import StoreTaxData from './store/StoreTaxData';
@@ -19,11 +18,10 @@ import { Settings, RefreshCw, Save, CheckCircle, AlertCircle } from 'lucide-reac
 import RestaurantDropdown from './RestaurantDropdown';
 
 interface StoreSettingsProps {
-  restaurantId: string;
   outletId: string;
 }
 
-const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
+const StoreSettings = ({ outletId }: StoreSettingsProps) => {
   const [petpoojaConfig, setPetpoojaConfig] = useState({
     restaurantId: '',
     appKey: '',
@@ -35,68 +33,26 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
   const { saveStoreConfig, loading: configLoading } = usePetpoojaStore();
   const { triggerSync, syncStatus, loading: syncLoading } = usePetpoojaSync();
   
-  // State for selected restaurant
-  const [selectedRestaurantId, setSelectedRestaurantId] = useState<string | null>(null);
-  
-  // State for outlet data
-  const [outletData, setOutletData] = useState<any>(null);
-  const [restaurantInfo, setRestaurantInfo] = useState<any>(null);
-  const [outletLoading, setOutletLoading] = useState(true);
+  const {
+    outletData,
+    selectedRestaurantId,
+    handleRestaurantChange,
+    saving: contextSaving,
+    storeData,
+    storeLoading: dataLoading,
+    refetchStoreData: refetch,
+    restaurant: restaurantInfo,
+    loading: outletLoading,
+  } = useOutlet();
+
+  const [storeCode, setStoreCode] = useState('');
   const [saving, setSaving] = useState(false);
 
-  // Use selected restaurant data for store operations
-  const { storeData, loading: dataLoading, refetch } = useStoreData(selectedRestaurantId || "");
-
-  // For editable Store Code field
-  const [storeCode, setStoreCode] = useState('');
-
-  // Load outlet data and initial restaurant mapping
   useEffect(() => {
-    const fetchOutlet = async () => {
-      setOutletLoading(true);
-      const { data: outlet, error } = await supabase
-        .from('outlets')
-        .select('*')
-        .eq('id', outletId)
-        .maybeSingle();
-      
-      if (!error && outlet) {
-        setOutletData(outlet);
-        setStoreCode(outlet.store_code ?? '');
-        // Set the initial restaurant selection from outlet's mapping
-        if (outlet.restaurant_id) {
-          setSelectedRestaurantId(outlet.restaurant_id);
-        }
-      }
-      setOutletLoading(false);
-    };
-    
-    if (outletId) fetchOutlet();
-  }, [outletId]);
-
-  // Load restaurant details when restaurant is selected
-  useEffect(() => {
-    const fetchRestaurantDetails = async () => {
-      if (!selectedRestaurantId) {
-        setRestaurantInfo(null);
-        return;
-      }
-      
-      const { data: restaurant, error } = await supabase
-        .from('restaurants')
-        .select('*')
-        .eq('id', selectedRestaurantId)
-        .maybeSingle();
-      
-      if (!error && restaurant) {
-        setRestaurantInfo(restaurant);
-      } else {
-        setRestaurantInfo(null);
-      }
-    };
-    
-    fetchRestaurantDetails();
-  }, [selectedRestaurantId]);
+    if (outletData) {
+      setStoreCode(outletData.store_code ?? '');
+    }
+  }, [outletData]);
 
   // Load outlet-specific PetPooja credentials
   useEffect(() => {
@@ -121,37 +77,6 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
       fetchOutletConfig();
     }
   }, [outletId]);
-
-  // Handle restaurant selection and update outlet mapping
-  const handleRestaurantChange = async (newRestaurantId: string) => {
-    setSaving(true);
-    try {
-      // Update outlet's restaurant mapping in database
-      await supabase
-        .from('outlets')
-        .update({ 
-          restaurant_id: newRestaurantId, 
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', outletId);
-      
-      // Update local state
-      setSelectedRestaurantId(newRestaurantId);
-      setOutletData(prev => prev ? { ...prev, restaurant_id: newRestaurantId } : null);
-      
-      toast({
-        title: 'Restaurant Linked Successfully',
-        description: 'Outlet has been linked to the selected restaurant.',
-      });
-    } catch (error) {
-      toast({
-        title: 'Linking Failed',
-        description: 'Failed to link outlet to restaurant.',
-        variant: 'destructive',
-      });
-    }
-    setSaving(false);
-  };
 
   const handleSaveConfig = async () => {
     try {
@@ -216,7 +141,7 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
   };
 
   const hasValidConfig = petpoojaConfig.restaurantId && petpoojaConfig.appKey && petpoojaConfig.appSecret;
-  const isRestaurantLinked = selectedRestaurantId && restaurantInfo;
+  const isRestaurantLinked = !!selectedRestaurantId;
 
   // Outlet basic info component
   function BasicOutletInfo() {
@@ -343,7 +268,7 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
           <RestaurantDropdown
             value={selectedRestaurantId}
             onChange={handleRestaurantChange}
-            disabled={saving}
+            disabled={contextSaving}
             label="Restaurant Name"
             placeholder="Choose a restaurant to link with this outlet"
           />

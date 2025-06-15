@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,6 +13,7 @@ import OutletSettings from '@/components/admin/OutletSettings';
 import FrontendSettings from '@/components/admin/FrontendSettings';
 import StoreSettings from '@/components/admin/StoreSettings';
 import OutletMenuManagement from '@/components/admin/OutletMenuManagement';
+import { OutletProvider } from '@/contexts/OutletContext';
 
 const Admin = () => {
   const [activeView, setActiveView] = useState('home');
@@ -23,13 +23,7 @@ const Admin = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Restaurant ID and Outlet ID mappings
-  const outletRestaurantMapping = {
-    'Airoli': '00000000-0000-0000-0000-000000000001',
-    'Andheri (W)': '00000000-0000-0000-0000-000000000002',
-    'Bandra': '00000000-0000-0000-0000-000000000003',
-  };
-
+  // Restaurant ID and Outlet ID mappings - this is now just for initial state
   const outletIdMapping = {
     'Airoli': '00000000-0000-0000-0000-000000000101',
     'Andheri (W)': '00000000-0000-0000-0000-000000000102',
@@ -97,16 +91,11 @@ const Admin = () => {
     setActiveOutletSection(section);
   };
 
-  const getRestaurantIdForOutlet = (outletName: string) => {
-    return outletRestaurantMapping[outletName] || '00000000-0000-0000-0000-000000000001';
-  };
-
   const getOutletIdForOutlet = (outletName: string) => {
     return outletIdMapping[outletName] || '00000000-0000-0000-0000-000000000101';
   };
 
   const renderOutletContent = () => {
-    const currentRestaurantId = getRestaurantIdForOutlet(selectedOutlet);
     const currentOutletId = getOutletIdForOutlet(selectedOutlet);
 
     switch (activeOutletSection) {
@@ -116,7 +105,6 @@ const Admin = () => {
         return <OutletMenuManagement 
           outletName={selectedOutlet} 
           outletId={currentOutletId}
-          restaurantId={currentRestaurantId} 
         />;
       case 'orders':
         return <OutletOrders outletName={selectedOutlet} />;
@@ -130,7 +118,6 @@ const Admin = () => {
   };
 
   const renderContent = () => {
-    const currentRestaurantId = getRestaurantIdForOutlet(selectedOutlet);
     const currentOutletId = getOutletIdForOutlet(selectedOutlet);
 
     switch (activeView) {
@@ -161,20 +148,23 @@ const Admin = () => {
       case 'frontend-settings':
         return <FrontendSettings />;
       case 'store-settings':
-        return <StoreSettings 
-          restaurantId={currentRestaurantId}
-          outletId={currentOutletId}
-        />;
+        return (
+          <OutletProvider outletId={currentOutletId}>
+            <StoreSettings outletId={currentOutletId} />
+          </OutletProvider>
+        );
       case 'outlet':
         return (
-          <OutletSettingsLayout
-            outletName={selectedOutlet}
-            activeSection={activeOutletSection}
-            onSectionChange={handleOutletSectionChange}
-            onBack={() => setActiveView('home')}
-          >
-            {renderOutletContent()}
-          </OutletSettingsLayout>
+          <OutletProvider outletId={currentOutletId}>
+            <OutletSettingsLayout
+              outletName={selectedOutlet}
+              activeSection={activeOutletSection}
+              onSectionChange={handleOutletSectionChange}
+              onBack={() => setActiveView('home')}
+            >
+              {renderOutletContent()}
+            </OutletSettingsLayout>
+          </OutletProvider>
         );
       default:
         return (

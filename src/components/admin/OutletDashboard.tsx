@@ -1,14 +1,11 @@
-import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useStoreData } from '@/hooks/useStoreData';
-import { supabase } from '@/integrations/supabase/client';
+import { useOutlet } from '@/contexts/OutletContext';
 import { MapPin, Clock, Store, Settings, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
 import RestaurantDropdown from './RestaurantDropdown';
-import { useToast } from '@/hooks/use-toast';
 
 interface OutletDashboardProps {
   outletName: string;
@@ -16,66 +13,25 @@ interface OutletDashboardProps {
 }
 
 const OutletDashboard = ({ outletName, outletId }: OutletDashboardProps) => {
-  const [outletData, setOutletData] = useState<any>(null);
-  const [selectedRestaurantId, setSelectedRestaurantId] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const { toast } = useToast();
-
-  const { storeData, loading, error, refetch } = useStoreData(selectedRestaurantId || '');
-
-  useEffect(() => {
-    const fetchOutletData = async () => {
-      if (outletId) {
-        const { data: outlet } = await supabase
-          .from('outlets')
-          .select('*')
-          .eq('id', outletId)
-          .single();
-        
-        setOutletData(outlet);
-        if (outlet?.restaurant_id) {
-          setSelectedRestaurantId(outlet.restaurant_id);
-        }
-      }
-    };
-
-    fetchOutletData();
-  }, [outletId]);
-
-  const handleRestaurantChange = async (newRestaurantId: string) => {
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from('outlets')
-        .update({ 
-          restaurant_id: newRestaurantId, 
-          updated_at: new Date().toISOString() 
-        })
-        .eq('id', outletId);
-
-      if (error) throw error;
-      
-      setSelectedRestaurantId(newRestaurantId);
-      setOutletData(prev => prev ? { ...prev, restaurant_id: newRestaurantId } : null);
-      
-      toast({
-        title: 'Restaurant Linked Successfully',
-        description: 'Outlet has been linked to the selected restaurant.',
-      });
-      refetch();
-    } catch (error) {
-      toast({
-        title: 'Linking Failed',
-        description: 'Failed to link outlet to restaurant.',
-        variant: 'destructive',
-      });
-    }
-    setSaving(false);
-  };
+  const {
+    outletData,
+    selectedRestaurantId,
+    handleRestaurantChange,
+    saving,
+    storeData,
+    loading: outletLoading,
+    storeLoading,
+    storeError,
+    refetchStoreData,
+    restaurant,
+  } = useOutlet();
   
   const isRestaurantLinked = !!selectedRestaurantId;
+  const loading = outletLoading || (isRestaurantLinked && storeLoading);
+  const error = storeError;
+  const refetch = refetchStoreData;
 
-  if (loading && !isRestaurantLinked) {
+  if (outletLoading && !isRestaurantLinked) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -94,8 +50,6 @@ const OutletDashboard = ({ outletName, outletId }: OutletDashboardProps) => {
       </div>
     );
   }
-
-  const restaurant = storeData?.restaurant;
 
   return (
     <div className="space-y-6">

@@ -5,22 +5,27 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { useStoreData } from '@/hooks/useStoreData';
 import PetpoojaSyncButton from '@/components/PetpoojaSyncButton';
-import { Plus, Search, Filter, Edit, ChevronDown, ChevronRight, Package, Tag, Percent } from 'lucide-react';
+import { Plus, Search, Filter, Edit, ChevronDown, ChevronRight, Package, Tag, Percent, AlertCircle } from 'lucide-react';
+import { useOutlet } from '@/contexts/OutletContext';
 
 interface OutletMenuManagementProps {
   outletName: string;
   outletId: string;
-  restaurantId: string;
 }
 
-const OutletMenuManagement = ({ outletName, outletId, restaurantId }: OutletMenuManagementProps) => {
+const OutletMenuManagement = ({ outletName, outletId }: OutletMenuManagementProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState('overview');
   
-  const { storeData, loading, error, refetch } = useStoreData(restaurantId);
+  const { 
+    storeData, 
+    storeLoading: loading, 
+    storeError: error, 
+    refetchStoreData: refetch, 
+    selectedRestaurantId 
+  } = useOutlet();
 
   const toggleCategory = (categoryId: string) => {
     const newExpanded = new Set(expandedCategories);
@@ -31,6 +36,30 @@ const OutletMenuManagement = ({ outletName, outletId, restaurantId }: OutletMenu
     }
     setExpandedCategories(newExpanded);
   };
+
+  if (!selectedRestaurantId) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Menu Management</h1>
+            <p className="text-gray-600">{outletName}</p>
+          </div>
+        </div>
+        <Card className="border-yellow-200 bg-yellow-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3 text-yellow-800">
+              <AlertCircle className="h-6 w-6" />
+              <div>
+                <h3 className="font-semibold">No Restaurant Linked</h3>
+                <p>Please link a restaurant to this outlet to manage its menu. You can do this from the 'Dashboard' or 'Store Settings' tabs.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
