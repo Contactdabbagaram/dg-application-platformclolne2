@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -144,6 +145,13 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
 
   const hasValidConfig = petpoojaConfig.restaurantId && petpoojaConfig.appKey && petpoojaConfig.appSecret;
   const isRestaurantLinked = !!selectedRestaurantId;
+
+  console.log('StoreSettings debug:', {
+    selectedRestaurantId,
+    isRestaurantLinked,
+    restaurantInfo,
+    outletData: outletData ? { id: outletData.id, restaurant_id: outletData.restaurant_id } : null
+  });
 
   // Outlet basic info component
   function BasicOutletInfo() {

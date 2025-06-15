@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -31,7 +32,14 @@ const OutletDashboard = ({ outletName, outletId }: OutletDashboardProps) => {
   const error = storeError;
   const refetch = refetchStoreData;
 
-  if (outletLoading && !isRestaurantLinked) {
+  console.log('OutletDashboard debug:', {
+    selectedRestaurantId,
+    isRestaurantLinked,
+    restaurant,
+    outletData: outletData ? { id: outletData.id, restaurant_id: outletData.restaurant_id } : null
+  });
+
+  if (outletLoading && !outletData) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -102,7 +110,7 @@ const OutletDashboard = ({ outletName, outletId }: OutletDashboardProps) => {
             {isRestaurantLinked && restaurant && (
               <div className="space-y-2">
                 <Label htmlFor="restaurant-name">Linked Restaurant Name</Label>
-                <Input id="restaurant-name" value={restaurant.name} readOnly />
+                <Input id="restaurant-name" value={restaurant.name || ''} readOnly />
               </div>
             )}
           </div>

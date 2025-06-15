@@ -31,7 +31,7 @@ export const OutletProvider = ({
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
-  // Fetch outlet and set restaurant id immediately, validate existence
+  // Fetch outlet data and handle restaurant linking
   const fetchOutletData = useCallback(async () => {
     if (!outletId) {
       setOutletData(null);
@@ -41,19 +41,70 @@ export const OutletProvider = ({
     }
 
     setLoading(true);
+    console.log('Fetching outlet data for ID:', outletId);
+    
     try {
-      const { data: outlet, error } = await supabase
+      // First fetch the outlet data
+      const { data: outlet, error: outletError } = await supabase
         .from('outlets')
-        .select('*, restaurants:restaurant_id (id, name, status, city, state, country, address, currency_symbol, minimum_order_amount, delivery_charge, minimum_prep_time, status)')
+        .select('*')
         .eq('id', outletId)
         .maybeSingle();
 
-      if (error) throw error;
-      setOutletData(outlet);
-      // If outlet is already mapped, update selectedRestaurantId immediately
-      if (outlet?.restaurant_id) {
-        setSelectedRestaurantId(outlet.restaurant_id);
+      if (outletError) {
+        console.error('Error fetching outlet:', outletError);
+        throw outletError;
+      }
+
+      console.log('Outlet data:', outlet);
+
+      if (outlet) {
+        // If outlet has a restaurant_id, fetch the restaurant data separately
+        if (outlet.restaurant_id) {
+          console.log('Fetching restaurant data for ID:', outlet.restaurant_id);
+          
+          const { data: restaurant, error: restaurantError } = await supabase
+            .from('restaurants')
+            .select('*')
+            .eq('id', outlet.restaurant_id)
+            .maybeSingle();
+
+          if (restaurantError) {
+            console.error('Error fetching restaurant:', restaurantError);
+            // Don't throw here, just log the error and continue
+            toast({
+              title: 'Warning',
+              description: 'Outlet is linked to a restaurant that no longer exists.',
+              variant: 'destructive',
+            });
+          } else if (restaurant) {
+            console.log('Restaurant data:', restaurant);
+            // Attach restaurant data to outlet
+            outlet.restaurants = restaurant;
+          } else {
+            console.warn('Restaurant not found for ID:', outlet.restaurant_id);
+            // Clean up orphaned relationship
+            await supabase
+              .from('outlets')
+              .update({ restaurant_id: null })
+              .eq('id', outletId);
+            
+            outlet.restaurant_id = null;
+            toast({
+              title: 'Cleaned up',
+              description: 'Removed invalid restaurant link.',
+            });
+          }
+        }
+
+        setOutletData(outlet);
+        // Set the selected restaurant ID immediately based on the outlet data
+        const restaurantId = outlet.restaurant_id || null;
+        console.log('Setting selectedRestaurantId to:', restaurantId);
+        setSelectedRestaurantId(restaurantId);
       } else {
+        console.log('No outlet found for ID:', outletId);
+        setOutletData(null);
         setSelectedRestaurantId(null);
       }
     } catch (error) {
@@ -70,21 +121,12 @@ export const OutletProvider = ({
     }
   }, [outletId, toast]);
 
+  // Initial data fetch when outletId changes
   useEffect(() => {
     fetchOutletData();
-    // Only re-run when outletId changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [outletId]);
+  }, [fetchOutletData]);
 
-  // Listen for outletData and update restaurantId if user just linked or unlinked
-  useEffect(() => {
-    if (!outletData) return;
-    if (outletData.restaurant_id !== selectedRestaurantId) {
-      setSelectedRestaurantId(outletData.restaurant_id ?? null);
-    }
-  }, [outletData]);
-
-  // Fetches and links storeData based on selected restaurant
+  // Fetch store data based on selected restaurant
   const {
     storeData,
     loading: storeLoading,
@@ -92,15 +134,34 @@ export const OutletProvider = ({
     refetch: refetchStoreData,
   } = useStoreData(selectedRestaurantId || '');
 
-  // Restaurant object from storeData for display
-  const restaurant = storeData?.restaurant;
+  // Get restaurant object from storeData or outletData
+  const restaurant = storeData?.restaurant || outletData?.restaurants || null;
 
   const handleRestaurantChange = async (newRestaurantId: string) => {
     if (!outletId) return;
 
+    console.log('Changing restaurant to:', newRestaurantId);
     setSaving(true);
+    
     try {
-      const { error } = await supabase
+      // Validate that the restaurant exists before linking
+      const { data: restaurantExists, error: validateError } = await supabase
+        .from('restaurants')
+        .select('id, name')
+        .eq('id', newRestaurantId)
+        .maybeSingle();
+
+      if (validateError) {
+        console.error('Error validating restaurant:', validateError);
+        throw validateError;
+      }
+
+      if (!restaurantExists) {
+        throw new Error('Selected restaurant does not exist');
+      }
+
+      // Update the outlet with the new restaurant_id
+      const { error: updateError } = await supabase
         .from('outlets')
         .update({
           restaurant_id: newRestaurantId,
@@ -108,20 +169,27 @@ export const OutletProvider = ({
         })
         .eq('id', outletId);
 
-      if (error) throw error;
+      if (updateError) {
+        console.error('Error updating outlet:', updateError);
+        throw updateError;
+      }
 
-      // Show toast early for responsiveness
+      console.log('Successfully linked outlet to restaurant');
+
+      // Show success toast
       toast({
         title: 'Restaurant Linked Successfully',
-        description: 'Outlet has been linked to the selected restaurant.',
+        description: `Outlet has been linked to ${restaurantExists.name}.`,
       });
 
-      // Refetch outlet and restaurant mapping
+      // Refetch outlet data to ensure UI is in sync
       await fetchOutletData();
+      
     } catch (error) {
+      console.error('Error linking restaurant:', error);
       toast({
         title: 'Linking Failed',
-        description: 'Failed to link outlet to restaurant.',
+        description: error instanceof Error ? error.message : 'Failed to link outlet to restaurant.',
         variant: 'destructive',
       });
     } finally {
