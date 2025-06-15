@@ -24,16 +24,13 @@ export const useRestaurantLink = (
 
   const handleRestaurantChange = async (newRestaurantId: string) => {
     if (!outletId || newRestaurantId === currentRestaurantId) return;
-
     try {
       const { data: restaurant, error } = await supabase
         .from('restaurants')
         .select('name')
         .eq('id', newRestaurantId)
         .single();
-      
       if (error) throw error;
-
       if (restaurant) {
         setConfirmationState({ isOpen: true, newRestaurantId, restaurantName: restaurant.name });
       } else {
@@ -55,10 +52,45 @@ export const useRestaurantLink = (
 
   const confirmRestaurantChange = async () => {
     const { newRestaurantId } = confirmationState;
-    if (!outletId || !newRestaurantId || newRestaurantId === currentRestaurantId) return;
+    if (!outletId || !newRestaurantId || newRestaurantId === currentRestaurantId) {
+      console.warn('[useRestaurantLink] Aborted: invalid parameters for restaurant link');
+      toast({
+        title: 'Invalid Operation',
+        description: 'You must select a new restaurant to link.',
+        variant: 'destructive',
+      });
+      return;
+    }
 
     setSaving(true);
     try {
+      // Check authentication before proceeding!
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        console.error('[useRestaurantLink] Supabase auth.getSession error:', sessionError);
+        toast({
+          title: 'Authentication Error',
+          description: 'Could not determine authentication state.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (!session || !session.user) {
+        console.error('[useRestaurantLink] No user session found, aborting update');
+        toast({
+          title: 'Not Authenticated',
+          description: 'You must be logged in to link a restaurant. Please log in and try again.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      // Continue: validate the target restaurant exists
       const { data: restaurantExists, error: validateError } = await supabase
         .from('restaurants')
         .select('id, name')
@@ -68,13 +100,25 @@ export const useRestaurantLink = (
       if (validateError) throw validateError;
       if (!restaurantExists) throw new Error('Selected restaurant does not exist');
 
+      // DEBUG: Show user info before update
+      console.log('[useRestaurantLink] User authenticated as:', session.user.id, session.user.email);
+
+      // DEBUG: Log the intended update
+      console.log(
+        `[useRestaurantLink] Attempting outlet update by user:`,
+        {
+          outletId,
+          newRestaurantId,
+          authenticatedUserId: session.user.id,
+        }
+      );
+
       const { error: updateError } = await supabase
         .from('outlets')
         .update({ restaurant_id: newRestaurantId, updated_at: new Date().toISOString() })
         .eq('id', outletId);
 
       if (updateError) {
-        // Detect RLS error for more actionable feedback
         const rlsMessage = "Permission denied: Row Level Security policy prevented updating the outlet. Please check your access rights.";
         if (updateError.message && updateError.message.toLowerCase().includes("row level security")) {
           toast({
@@ -104,13 +148,10 @@ export const useRestaurantLink = (
       await queryClient.invalidateQueries({ queryKey: ['outletData', outletId] });
       await queryClient.invalidateQueries({ queryKey: ['store-data', newRestaurantId] });
 
-      // Call the user-provided callback after successful link, if it exists
       if (options && typeof options.onLinked === 'function') {
         await options.onLinked(newRestaurantId);
       }
-
     } catch (error) {
-      // If thrown above, error is already handled, just ensure loading is stopped and dialog closed
       if (!(error instanceof Error)) {
         toast({
           title: 'Unknown Error',
@@ -134,4 +175,3 @@ export const useRestaurantLink = (
     cancelRestaurantChange,
   };
 };
-
