@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useStoreData } from '@/hooks/useStoreData';
@@ -28,7 +27,8 @@ interface OutletContextType {
   };
 }
 
-// ... OutletContext creation stays the same
+// ✅ FIX: Properly create the context with correct type
+export const OutletContext = createContext<OutletContextType | undefined>(undefined);
 
 export const OutletProvider = ({
   outletId,
@@ -146,6 +146,7 @@ export const OutletProvider = ({
   return <OutletContext.Provider value={value}>{children}</OutletContext.Provider>;
 };
 
+// ✅ FIX: useOutlet reads from OutletContext
 export const useOutlet = () => {
   const context = useContext(OutletContext);
   if (context === undefined) {
