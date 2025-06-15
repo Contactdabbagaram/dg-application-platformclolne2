@@ -16,7 +16,7 @@ interface Restaurant {
   city?: string;
   state?: string;
   minimum_order_amount?: number;
-  minimum_delivery_time?: string;
+  minimum_delivery_time?: number;
   minimum_prep_time?: number;
   delivery_charge?: number;
 }
