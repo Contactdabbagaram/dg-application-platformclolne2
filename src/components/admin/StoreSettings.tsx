@@ -19,6 +19,7 @@ import { Settings, RefreshCw, Save, CheckCircle, AlertCircle } from 'lucide-reac
 import RestaurantDropdown from './RestaurantDropdown';
 import { RestaurantChangeConfirmationDialog } from './RestaurantChangeConfirmationDialog';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface StoreSettingsProps {
   outletId: string;
@@ -36,6 +37,10 @@ interface EditableOutletData {
   is_active: boolean;
   max_delivery_distance_km: number | string;
   estimated_delivery_time_minutes: number | string;
+  delivery_fee_type: string;
+  base_delivery_distance_km: number | string;
+  base_delivery_fee: number | string;
+  per_km_delivery_fee: number | string;
 }
 
 const StoreSettings = ({ outletId }: StoreSettingsProps) => {
@@ -76,6 +81,10 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
     is_active: true,
     max_delivery_distance_km: '',
     estimated_delivery_time_minutes: '',
+    delivery_fee_type: 'flat',
+    base_delivery_distance_km: '',
+    base_delivery_fee: '',
+    per_km_delivery_fee: '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -93,6 +102,10 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
         is_active: outletData.is_active,
         max_delivery_distance_km: outletData.max_delivery_distance_km || '',
         estimated_delivery_time_minutes: outletData.estimated_delivery_time_minutes || '',
+        delivery_fee_type: outletData.delivery_fee_type || 'flat',
+        base_delivery_distance_km: outletData.base_delivery_distance_km || '',
+        base_delivery_fee: outletData.base_delivery_fee || '',
+        per_km_delivery_fee: outletData.per_km_delivery_fee || '',
       });
     }
   }, [outletData]);
@@ -158,6 +171,9 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
         min_order_amount: editableData.min_order_amount ? Number(editableData.min_order_amount) : null,
         max_delivery_distance_km: editableData.max_delivery_distance_km ? Number(editableData.max_delivery_distance_km) : null,
         estimated_delivery_time_minutes: editableData.estimated_delivery_time_minutes ? Number(editableData.estimated_delivery_time_minutes) : null,
+        base_delivery_distance_km: editableData.base_delivery_distance_km ? Number(editableData.base_delivery_distance_km) : null,
+        base_delivery_fee: editableData.base_delivery_fee ? Number(editableData.base_delivery_fee) : null,
+        per_km_delivery_fee: editableData.per_km_delivery_fee ? Number(editableData.per_km_delivery_fee) : null,
         updated_at: new Date().toISOString(),
       };
       
@@ -262,10 +278,6 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
               <Input id="delivery_radius_km" name="delivery_radius_km" type="number" value={editableData.delivery_radius_km} onChange={handleDataChange} />
             </div>
             <div>
-              <Label htmlFor="delivery_fee">Delivery Fee</Label>
-              <Input id="delivery_fee" name="delivery_fee" type="number" value={editableData.delivery_fee} onChange={handleDataChange} />
-            </div>
-            <div>
               <Label htmlFor="min_order_amount">Minimum Order</Label>
               <Input id="min_order_amount" name="min_order_amount" type="number" value={editableData.min_order_amount} onChange={handleDataChange} />
             </div>
@@ -277,6 +289,42 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
               <Label htmlFor="estimated_delivery_time_minutes">Est. Delivery Time (min)</Label>
               <Input id="estimated_delivery_time_minutes" name="estimated_delivery_time_minutes" type="number" value={editableData.estimated_delivery_time_minutes} onChange={handleDataChange} />
             </div>
+            <div>
+              <Label htmlFor="delivery_fee_type">Delivery Fee Type</Label>
+              <Select
+                value={editableData.delivery_fee_type}
+                onValueChange={(value) => setEditableData(prev => ({ ...prev, delivery_fee_type: value }))}
+              >
+                <SelectTrigger id="delivery_fee_type">
+                  <SelectValue placeholder="Select fee type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="flat">Flat</SelectItem>
+                  <SelectItem value="tiered">Tiered</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {editableData.delivery_fee_type === 'flat' ? (
+              <div>
+                <Label htmlFor="delivery_fee">Delivery Fee (Flat)</Label>
+                <Input id="delivery_fee" name="delivery_fee" type="number" value={editableData.delivery_fee} onChange={handleDataChange} />
+              </div>
+            ) : (
+              <>
+                <div>
+                  <Label htmlFor="base_delivery_distance_km">Base Distance (km)</Label>
+                  <Input id="base_delivery_distance_km" name="base_delivery_distance_km" type="number" value={editableData.base_delivery_distance_km} onChange={handleDataChange} />
+                </div>
+                <div>
+                  <Label htmlFor="base_delivery_fee">Base Fee</Label>
+                  <Input id="base_delivery_fee" name="base_delivery_fee" type="number" value={editableData.base_delivery_fee} onChange={handleDataChange} />
+                </div>
+                <div>
+                  <Label htmlFor="per_km_delivery_fee">Fee Per km (after base)</Label>
+                  <Input id="per_km_delivery_fee" name="per_km_delivery_fee" type="number" value={editableData.per_km_delivery_fee} onChange={handleDataChange} />
+                </div>
+              </>
+            )}
             <div className="flex flex-col space-y-2 pt-2">
               <Label htmlFor="is_active">Active</Label>
               <Switch id="is_active" checked={editableData.is_active} onCheckedChange={handleSwitchChange} />

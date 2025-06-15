@@ -1,4 +1,3 @@
-
 export interface GeofencePoint {
   lat: number;
   lng: number;
@@ -24,6 +23,33 @@ export interface CustomerLocation {
   longitude: number;
   address?: string;
 }
+
+/**
+ * Calculate tiered delivery fee
+ */
+export const calculateDeliveryFee = (outlet: {
+    delivery_fee_type?: string | null;
+    delivery_fee?: number | null;
+    base_delivery_distance_km?: number | null;
+    base_delivery_fee?: number | null;
+    per_km_delivery_fee?: number | null;
+  }, distance: number): number => {
+    if (outlet.delivery_fee_type === 'tiered' && 
+        outlet.base_delivery_distance_km != null && outlet.base_delivery_fee != null && outlet.per_km_delivery_fee != null &&
+        outlet.base_delivery_distance_km >= 0 && outlet.base_delivery_fee >= 0 && outlet.per_km_delivery_fee >= 0
+    ) {
+      if (distance <= outlet.base_delivery_distance_km) {
+        return outlet.base_delivery_fee;
+      } else {
+        const extraDistance = distance - outlet.base_delivery_distance_km;
+        const extraFee = extraDistance * outlet.per_km_delivery_fee;
+        const totalFee = outlet.base_delivery_fee + extraFee;
+        return Math.round(totalFee * 100) / 100; // Round to 2 decimal places
+      }
+    }
+    
+    return outlet.delivery_fee || 0;
+  };
 
 /**
  * Calculate distance between two points using Haversine formula

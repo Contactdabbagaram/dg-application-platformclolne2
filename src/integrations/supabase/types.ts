@@ -1177,8 +1177,11 @@ export type Database = {
       outlets: {
         Row: {
           address: string
+          base_delivery_distance_km: number | null
+          base_delivery_fee: number | null
           created_at: string | null
           delivery_fee: number | null
+          delivery_fee_type: string
           delivery_radius_km: number | null
           email: string | null
           estimated_delivery_time_minutes: number | null
@@ -1190,6 +1193,7 @@ export type Database = {
           max_delivery_distance_km: number | null
           min_order_amount: number | null
           name: string
+          per_km_delivery_fee: number | null
           petpooja_access_token: string | null
           petpooja_app_key: string | null
           petpooja_app_secret: string | null
@@ -1202,8 +1206,11 @@ export type Database = {
         }
         Insert: {
           address: string
+          base_delivery_distance_km?: number | null
+          base_delivery_fee?: number | null
           created_at?: string | null
           delivery_fee?: number | null
+          delivery_fee_type?: string
           delivery_radius_km?: number | null
           email?: string | null
           estimated_delivery_time_minutes?: number | null
@@ -1215,6 +1222,7 @@ export type Database = {
           max_delivery_distance_km?: number | null
           min_order_amount?: number | null
           name: string
+          per_km_delivery_fee?: number | null
           petpooja_access_token?: string | null
           petpooja_app_key?: string | null
           petpooja_app_secret?: string | null
@@ -1227,8 +1235,11 @@ export type Database = {
         }
         Update: {
           address?: string
+          base_delivery_distance_km?: number | null
+          base_delivery_fee?: number | null
           created_at?: string | null
           delivery_fee?: number | null
+          delivery_fee_type?: string
           delivery_radius_km?: number | null
           email?: string | null
           estimated_delivery_time_minutes?: number | null
@@ -1240,6 +1251,7 @@ export type Database = {
           max_delivery_distance_km?: number | null
           min_order_amount?: number | null
           name?: string
+          per_km_delivery_fee?: number | null
           petpooja_access_token?: string | null
           petpooja_app_key?: string | null
           petpooja_app_secret?: string | null

@@ -1,6 +1,5 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { CustomerLocation, GeofencePoint, OutletLocation, isPointInPolygon } from './locationUtils';
+import { CustomerLocation, GeofencePoint, OutletLocation, isPointInPolygon, calculateDeliveryFee } from './locationUtils';
 
 /**
  * Database utility functions for location-based features
@@ -87,6 +86,7 @@ export const findNearestOutletsDB = async (
         isInServiceArea = distance <= deliveryRadius;
       }
       
+      const calculatedDeliveryFee = calculateDeliveryFee(outlet, distance);
       const baseDeliveryTime = outlet.estimated_delivery_time_minutes || 30;
       const estimatedTime = baseDeliveryTime + Math.round(distance * 2);
 
@@ -94,7 +94,8 @@ export const findNearestOutletsDB = async (
         ...outlet,
         distance_km: distance,
         is_in_service_area: isInServiceArea,
-        estimated_delivery_minutes: estimatedTime
+        estimated_delivery_minutes: estimatedTime,
+        delivery_fee: calculatedDeliveryFee
       };
     });
 
