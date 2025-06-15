@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +17,7 @@ import StoreDiscountData from './store/StoreDiscountData';
 import StoreSyncDashboard from './store/StoreSyncDashboard';
 import { Settings, RefreshCw, Save, CheckCircle, AlertCircle } from 'lucide-react';
 import RestaurantDropdown from './RestaurantDropdown';
+import { RestaurantChangeConfirmationDialog } from './RestaurantChangeConfirmationDialog';
 
 interface StoreSettingsProps {
   outletId: string;
@@ -257,6 +257,7 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
   function ConnectedRestaurantInfo() {
     return (
       <Card className="mb-4">
+        <RestaurantChangeConfirmationDialog />
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Connected Restaurant Information</CardTitle>

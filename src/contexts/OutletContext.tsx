@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useStoreData } from '@/hooks/useStoreData';
@@ -18,6 +17,13 @@ interface OutletContextType {
   refetchStoreData: () => void;
   restaurant: any | null;
   refetchOutletData: () => void;
+  confirmRestaurantChange: () => Promise<void>;
+  cancelRestaurantChange: () => void;
+  confirmationState: {
+    isOpen: boolean;
+    newRestaurantId: string | null;
+    restaurantName?: string;
+  };
 }
 
 const OutletContext = createContext<OutletContextType | undefined>(undefined);
@@ -30,6 +36,7 @@ export const OutletProvider = ({
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [confirmationState, setConfirmationState] = useState<{ isOpen: boolean; newRestaurantId: string | null; restaurantName?: string }>({ isOpen: false, newRestaurantId: null });
 
   // Fetch outlet data using React Query for better state management and caching
   const {
@@ -100,9 +107,42 @@ export const OutletProvider = ({
 
   const restaurant = storeData?.restaurant || null;
   
-  // Handle linking a restaurant to the outlet
+  // Handle prompting for restaurant link change
   const handleRestaurantChange = async (newRestaurantId: string) => {
     if (!outletId || newRestaurantId === selectedRestaurantId) return;
+
+    try {
+      const { data: restaurant, error } = await supabase
+        .from('restaurants')
+        .select('name')
+        .eq('id', newRestaurantId)
+        .single();
+      
+      if (error) throw error;
+
+      if (restaurant) {
+        setConfirmationState({ isOpen: true, newRestaurantId, restaurantName: restaurant.name });
+      } else {
+        throw new Error('Selected restaurant not found.');
+      }
+    } catch (error) {
+      console.error('Error fetching restaurant for confirmation:', error);
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Could not find the selected restaurant.',
+        variant: 'destructive',
+      });
+    }
+  };
+  
+  const cancelRestaurantChange = () => {
+    setConfirmationState({ isOpen: false, newRestaurantId: null, restaurantName: undefined });
+  };
+
+  // Handle linking a restaurant to the outlet after confirmation
+  const confirmRestaurantChange = async () => {
+    const { newRestaurantId } = confirmationState;
+    if (!outletId || !newRestaurantId || newRestaurantId === selectedRestaurantId) return;
 
     setSaving(true);
     try {
@@ -128,8 +168,10 @@ export const OutletProvider = ({
       });
       
       // Optimistically update the UI and then invalidate query to refetch in background
+      queryClient.setQueryData(['outletData', outletId], (oldData: any) => oldData ? { ...oldData, restaurant_id: newRestaurantId } : oldData);
       setSelectedRestaurantId(newRestaurantId);
-      queryClient.invalidateQueries({ queryKey: ['outletData', outletId] });
+      await queryClient.invalidateQueries({ queryKey: ['outletData', outletId] });
+      await queryClient.invalidateQueries({ queryKey: ['store-data', newRestaurantId] });
 
     } catch (error) {
       console.error('Error linking restaurant:', error);
@@ -142,6 +184,7 @@ export const OutletProvider = ({
       await queryClient.refetchQueries({ queryKey: ['outletData', outletId] });
     } finally {
       setSaving(false);
+      cancelRestaurantChange();
     }
   };
 
@@ -157,7 +200,10 @@ export const OutletProvider = ({
     storeError,
     refetchStoreData,
     restaurant,
-    refetchOutletData, // Now from useQuery
+    refetchOutletData,
+    confirmRestaurantChange,
+    cancelRestaurantChange,
+    confirmationState,
   };
 
   return <OutletContext.Provider value={value}>{children}</OutletContext.Provider>;

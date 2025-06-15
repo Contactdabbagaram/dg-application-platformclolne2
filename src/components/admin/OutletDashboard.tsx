@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { useOutlet } from '@/contexts/OutletContext';
 import { MapPin, Clock, Store, Settings, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
 import RestaurantDropdown from './RestaurantDropdown';
+import { RestaurantChangeConfirmationDialog } from './RestaurantChangeConfirmationDialog';
 
 interface OutletDashboardProps {
   outletName: string;
@@ -62,6 +63,7 @@ const OutletDashboard = ({ outletName, outletId }: OutletDashboardProps) => {
   // Immediately display all data if isRestaurantLinked (even if loading refetch)
   return (
     <div className="space-y-6">
+      <RestaurantChangeConfirmationDialog />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -153,11 +155,134 @@ const OutletDashboard = ({ outletName, outletId }: OutletDashboardProps) => {
               </Button>
             </div>
           ) : (
-            // ... keep existing code displaying actual dashboard, pure context-driven ...
-            // ... (Key Metrics, Restaurant and Outlet Details, Data Summary) ...
-            // ... keep existing code for these dashboard sections ...
             <>
-              {/* ... keep existing dashboard UI, nothing removed except blocking fallbacks ... */}
+              <div className="space-y-6">
+                {/* Key Metrics */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Total Orders</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{storeData?.restaurant?.total_orders || 0}</div>
+                      <p className="text-sm text-gray-500">Lifetime orders processed</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Revenue</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">₹{storeData?.restaurant?.revenue || 0}</div>
+                      <p className="text-sm text-gray-500">Total sales revenue</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Avg. Order Value</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">₹{storeData?.restaurant?.average_order_value || 0}</div>
+                      <p className="text-sm text-gray-500">Average amount per order</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Customer Satisfaction</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{storeData?.restaurant?.customer_satisfaction || 0}%</div>
+                      <p className="text-sm text-gray-500">Positive feedback rate</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Restaurant and Outlet Details */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Restaurant Details</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label>Name</Label>
+                          <Input value={restaurant?.name || 'N/A'} readOnly />
+                        </div>
+                        <div>
+                          <Label>Status</Label>
+                          <Input value={restaurant?.status || 'N/A'} readOnly />
+                        </div>
+                        <div>
+                          <Label>City</Label>
+                          <Input value={restaurant?.city || 'N/A'} readOnly />
+                        </div>
+                        <div>
+                          <Label>Cuisine</Label>
+                          <Input value={restaurant?.cuisine || 'N/A'} readOnly />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Outlet Details</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <Label>Address</Label>
+                          <Input value={outletData?.address || 'N/A'} readOnly />
+                        </div>
+                        <div>
+                          <Label>Phone</Label>
+                          <Input value={outletData?.phone || 'N/A'} readOnly />
+                        </div>
+                        <div>
+                          <Label>Delivery Radius</Label>
+                          <Input value={`${outletData?.delivery_radius_km || 0} km`} readOnly />
+                        </div>
+                        <div>
+                          <Label>Delivery Fee</Label>
+                          <Input value={`₹${outletData?.delivery_fee || 0}`} readOnly />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Data Summary */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Data Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      <div>
+                        <Label>Menu Items</Label>
+                        <Input value={storeData?.items?.length?.toString() || '0'} readOnly />
+                      </div>
+                      <div>
+                        <Label>Categories</Label>
+                        <Input value={storeData?.categories?.length?.toString() || '0'} readOnly />
+                      </div>
+                      <div>
+                        <Label>Taxes</Label>
+                        <Input value={storeData?.taxes?.length?.toString() || '0'} readOnly />
+                      </div>
+                      <div>
+                        <Label>Discounts</Label>
+                        <Input value={storeData?.discounts?.length?.toString() || '0'} readOnly />
+                      </div>
+                      <div>
+                        <Label>Addons</Label>
+                        <Input value={storeData?.addons?.length?.toString() || '0'} readOnly />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </>
           )}
         </>
