@@ -4,7 +4,15 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-export const useRestaurantLink = (outletId: string | null, currentRestaurantId: string | null) => {
+interface RestaurantLinkOptions {
+  onLinked?: (newRestaurantId: string) => void | Promise<void>;
+}
+
+export const useRestaurantLink = (
+  outletId: string | null,
+  currentRestaurantId: string | null,
+  options?: RestaurantLinkOptions
+) => {
   const [saving, setSaving] = useState(false);
   const [confirmationState, setConfirmationState] = useState<{
     isOpen: boolean;
@@ -71,9 +79,14 @@ export const useRestaurantLink = (outletId: string | null, currentRestaurantId: 
         title: 'Restaurant Linked Successfully',
         description: `Outlet has been linked to ${restaurantExists.name}.`,
       });
-      
+
       await queryClient.invalidateQueries({ queryKey: ['outletData', outletId] });
       await queryClient.invalidateQueries({ queryKey: ['store-data', newRestaurantId] });
+
+      // Call the user-provided callback after successful link, if it exists
+      if (options && typeof options.onLinked === 'function') {
+        await options.onLinked(newRestaurantId);
+      }
 
     } catch (error) {
       console.error('Error linking restaurant:', error);
@@ -97,3 +110,4 @@ export const useRestaurantLink = (outletId: string | null, currentRestaurantId: 
     cancelRestaurantChange,
   };
 };
+
