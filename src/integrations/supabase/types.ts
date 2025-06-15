@@ -1192,7 +1192,10 @@ export type Database = {
           longitude: number | null
           max_delivery_distance_km: number | null
           min_order_amount: number | null
+          minimum_delivery_time: number | null
+          minimum_prep_time: number | null
           name: string
+          packaging_charge: number | null
           per_km_delivery_fee: number | null
           petpooja_access_token: string | null
           petpooja_app_key: string | null
@@ -1203,6 +1206,7 @@ export type Database = {
           phone: string | null
           restaurant_id: string | null
           service_area_type: string
+          service_charge_value: number | null
           store_code: string | null
           updated_at: string | null
         }
@@ -1223,7 +1227,10 @@ export type Database = {
           longitude?: number | null
           max_delivery_distance_km?: number | null
           min_order_amount?: number | null
+          minimum_delivery_time?: number | null
+          minimum_prep_time?: number | null
           name: string
+          packaging_charge?: number | null
           per_km_delivery_fee?: number | null
           petpooja_access_token?: string | null
           petpooja_app_key?: string | null
@@ -1234,6 +1241,7 @@ export type Database = {
           phone?: string | null
           restaurant_id?: string | null
           service_area_type?: string
+          service_charge_value?: number | null
           store_code?: string | null
           updated_at?: string | null
         }
@@ -1254,7 +1262,10 @@ export type Database = {
           longitude?: number | null
           max_delivery_distance_km?: number | null
           min_order_amount?: number | null
+          minimum_delivery_time?: number | null
+          minimum_prep_time?: number | null
           name?: string
+          packaging_charge?: number | null
           per_km_delivery_fee?: number | null
           petpooja_access_token?: string | null
           petpooja_app_key?: string | null
@@ -1265,6 +1276,7 @@ export type Database = {
           phone?: string | null
           restaurant_id?: string | null
           service_area_type?: string
+          service_charge_value?: number | null
           store_code?: string | null
           updated_at?: string | null
         }
@@ -1749,7 +1761,7 @@ export type Database = {
           landmark: string | null
           latitude: number | null
           longitude: number | null
-          minimum_delivery_time: string | null
+          minimum_delivery_time: number | null
           minimum_order_amount: number | null
           minimum_prep_time: number | null
           name: string
@@ -1781,7 +1793,7 @@ export type Database = {
           landmark?: string | null
           latitude?: number | null
           longitude?: number | null
-          minimum_delivery_time?: string | null
+          minimum_delivery_time?: number | null
           minimum_order_amount?: number | null
           minimum_prep_time?: number | null
           name: string
@@ -1813,7 +1825,7 @@ export type Database = {
           landmark?: string | null
           latitude?: number | null
           longitude?: number | null
-          minimum_delivery_time?: string | null
+          minimum_delivery_time?: number | null
           minimum_order_amount?: number | null
           minimum_prep_time?: number | null
           name?: string

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -67,11 +66,8 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
     base_delivery_distance_km: 0,
     base_delivery_fee: 0,
     per_km_delivery_fee: 0,
-  });
-
-  const [editableRestaurantFields, setEditableRestaurantFields] = useState({
     minimum_prep_time: 30,
-    minimum_delivery_time: '',
+    minimum_delivery_time: 30,
     packaging_charge: 0,
     service_charge_value: 0,
   });
@@ -125,6 +121,10 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
           base_delivery_distance_km: data.base_delivery_distance_km || 0,
           base_delivery_fee: data.base_delivery_fee || 0,
           per_km_delivery_fee: data.per_km_delivery_fee || 0,
+          minimum_prep_time: data.minimum_prep_time || 30,
+          minimum_delivery_time: data.minimum_delivery_time || 30,
+          packaging_charge: data.packaging_charge || 0,
+          service_charge_value: data.service_charge_value || 0,
         });
 
         // Load restaurant data if available
@@ -139,12 +139,6 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
           if (!restaurantError && restaurant) {
             console.log('Loaded restaurant data:', restaurant);
             setRestaurantData(restaurant);
-            setEditableRestaurantFields({
-              minimum_prep_time: restaurant.minimum_prep_time || 30,
-              minimum_delivery_time: restaurant.minimum_delivery_time || '',
-              packaging_charge: restaurant.packaging_charge || 0,
-              service_charge_value: restaurant.service_charge_value || 0,
-            });
           } else if (restaurantError) {
             console.error('Error loading restaurant data:', restaurantError);
           }
@@ -172,14 +166,6 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
   const handleFieldChange = (field: string, value: any) => {
     console.log('Field change:', field, value);
     setEditableFields(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const handleRestaurantFieldChange = (field: string, value: any) => {
-    console.log('Restaurant field change:', field, value);
-    setEditableRestaurantFields(prev => ({
       ...prev,
       [field]: value
     }));
@@ -214,6 +200,10 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
         base_delivery_distance_km: Number(editableFields.base_delivery_distance_km),
         base_delivery_fee: Number(editableFields.base_delivery_fee),
         per_km_delivery_fee: Number(editableFields.per_km_delivery_fee),
+        minimum_prep_time: Number(editableFields.minimum_prep_time),
+        minimum_delivery_time: Number(editableFields.minimum_delivery_time),
+        packaging_charge: Number(editableFields.packaging_charge),
+        service_charge_value: Number(editableFields.service_charge_value),
       };
 
       console.log('Sending update data to database:', updateData);
@@ -229,60 +219,19 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
         console.error('Database error during save:', error);
         throw error;
       }
-
+      
       if (!updatedData || updatedData.length === 0) {
         throw new Error('No data returned from update operation');
       }
 
       console.log('Successfully saved data:', updatedData[0]);
-      toast.success('Basic settings updated successfully');
+      toast.success('Settings updated successfully');
       
       // Update local state with saved data
       setOutletData({ ...outletData, ...updatedData[0] });
     } catch (error: any) {
       console.error('Error saving basic settings:', error);
-      toast.error(`Failed to save basic settings: ${error.message || 'Unknown error'}`);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const saveRestaurantSettings = async () => {
-    if (!restaurantData) {
-      toast.error("Cannot save: restaurant data not loaded.");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      const updateData = {
-        minimum_prep_time: Number(editableRestaurantFields.minimum_prep_time),
-        minimum_delivery_time: editableRestaurantFields.minimum_delivery_time,
-        packaging_charge: Number(editableRestaurantFields.packaging_charge),
-        service_charge_value: Number(editableRestaurantFields.service_charge_value),
-        updated_at: new Date().toISOString(),
-      };
-
-      const { data: updatedData, error } = await supabase
-        .from('restaurants')
-        .update(updateData)
-        .eq('id', restaurantData.id)
-        .select();
-
-      if (error) {
-        throw error;
-      }
-      
-      if (!updatedData || updatedData.length === 0) {
-        throw new Error('No data returned from update operation');
-      }
-
-      toast.success('Restaurant settings updated successfully');
-      setRestaurantData({ ...restaurantData, ...updatedData[0] });
-
-    } catch (error: any) {
-      console.error('Error saving restaurant settings:', error);
-      toast.error(`Failed to save restaurant settings: ${error.message || 'Unknown error'}`);
+      toast.error(`Failed to save settings: ${error.message || 'Unknown error'}`);
     } finally {
       setSaving(false);
     }
@@ -691,63 +640,59 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
 
                         <div className="mt-4">
                           <Button onClick={saveBasicSettings} disabled={saving}>
-                            {saving ? 'Saving...' : 'Save Order Settings'}
+                            {saving ? 'Saving...' : 'Save Order & Charge Settings'}
                           </Button>
                         </div>
                       </div>
 
-                      {/* Service Type from restaurant data */}
-                      {restaurantData && (
-                        <div>
-                          <h4 className="text-lg font-medium mb-4">Restaurant Settings</h4>
-                           <p className="text-sm text-gray-600 mb-4">
-                              These settings are applied across all outlets for this restaurant.
-                          </p>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="min-prep-time">Minimum Prep Time (mins)</Label>
-                              <Input
-                                id="min-prep-time"
-                                type="number"
-                                value={editableRestaurantFields.minimum_prep_time}
-                                onChange={(e) => handleRestaurantFieldChange('minimum_prep_time', parseInt(e.target.value) || 0)}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="min-delivery-time">Minimum Delivery Time</Label>
-                              <Input
-                                id="min-delivery-time"
-                                value={editableRestaurantFields.minimum_delivery_time}
-                                onChange={(e) => handleRestaurantFieldChange('minimum_delivery_time', e.target.value)}
-                                placeholder="e.g. 60Minutes"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="packaging-charge">Packaging Charge (₹)</Label>
-                              <Input
-                                id="packaging-charge"
-                                type="number"
-                                value={editableRestaurantFields.packaging_charge}
-                                onChange={(e) => handleRestaurantFieldChange('packaging_charge', parseFloat(e.target.value) || 0)}
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label htmlFor="service-charge">Service Charge Value (₹)</Label>
-                              <Input
-                                id="service-charge"
-                                type="number"
-                                value={editableRestaurantFields.service_charge_value}
-                                onChange={(e) => handleRestaurantFieldChange('service_charge_value', parseFloat(e.target.value) || 0)}
-                              />
-                            </div>
+                      {/* Outlet Specific Settings */}
+                      <div>
+                        <h4 className="text-lg font-medium my-4">Outlet Charges & Timings</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="min-prep-time">Minimum Prep Time (mins)</Label>
+                            <Input
+                              id="min-prep-time"
+                              type="number"
+                              value={editableFields.minimum_prep_time}
+                              onChange={(e) => handleFieldChange('minimum_prep_time', parseInt(e.target.value, 10) || 0)}
+                            />
                           </div>
-                           <div className="mt-4">
-                              <Button onClick={saveRestaurantSettings} disabled={saving}>
-                                {saving ? 'Saving...' : 'Save Restaurant Settings'}
-                              </Button>
-                            </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="min-delivery-time">Minimum Delivery Time (mins)</Label>
+                            <Input
+                              id="min-delivery-time"
+                              type="number"
+                              value={editableFields.minimum_delivery_time}
+                              onChange={(e) => handleFieldChange('minimum_delivery_time', parseInt(e.target.value, 10) || 0)}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="packaging-charge">Packaging Charge (₹)</Label>
+                            <Input
+                              id="packaging-charge"
+                              type="number"
+                              value={editableFields.packaging_charge}
+                              onChange={(e) => handleFieldChange('packaging_charge', parseFloat(e.target.value) || 0)}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="service-charge">Service Charge Value (₹)</Label>
+                            <Input
+                              id="service-charge"
+                              type="number"
+                              value={editableFields.service_charge_value}
+                              onChange={(e) => handleFieldChange('service_charge_value', parseFloat(e.target.value) || 0)}
+                            />
+                          </div>
                         </div>
-                      )}
+                      </div>
+
+                      <div className="mt-4">
+                        <Button onClick={saveBasicSettings} disabled={saving}>
+                          {saving ? 'Saving...' : 'Save Order & Charge Settings'}
+                        </Button>
+                      </div>
                     </div>
                   )}
 
