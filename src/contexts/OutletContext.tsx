@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useStoreData } from '@/hooks/useStoreData';
 import { useToast } from '@/hooks/use-toast';
@@ -36,6 +36,9 @@ export const OutletProvider = ({
   const [selectedRestaurantId, setSelectedRestaurantId] = useState<string | null>(null);
   const { toast } = useToast();
 
+  // Used to catch staleness issues
+  const lastUpdateRef = useRef<number>(0);
+
   // Fetch outlet data using React Query for better state management and caching
   const {
     data: outletData,
@@ -47,18 +50,15 @@ export const OutletProvider = ({
     queryKey: ['outletData', outletId],
     queryFn: async () => {
       if (!outletId) return null;
-
       const { data: outlet, error: outletError } = await supabase
         .from('outlets')
         .select('*')
         .eq('id', outletId)
         .maybeSingle();
-
       if (outletError) {
         console.error('Error fetching outlet:', outletError);
         throw outletError;
       }
-      
       // Auto-cleanup for orphaned restaurant links
       if (outlet?.restaurant_id) {
         const { data: restaurantExists } = await supabase
@@ -80,10 +80,11 @@ export const OutletProvider = ({
     enabled: !!outletId,
   });
 
+  // Keep selectedRestaurantId always in sync with server data
   useEffect(() => {
     if (outletData) {
-      // This is the source of truth for the linked restaurant ID
       setSelectedRestaurantId(outletData.restaurant_id || null);
+      console.log('[OutletContext] Set selectedRestaurantId from outletData:', outletData.restaurant_id);
     }
   }, [outletData]);
 
@@ -104,14 +105,25 @@ export const OutletProvider = ({
   } = useStoreData(selectedRestaurantId || '');
 
   const restaurant = storeData?.restaurant || null;
-  
+
+  // Custom function for updating restaurant linkage
   const {
     saving,
     confirmationState,
     handleRestaurantChange,
     confirmRestaurantChange,
     cancelRestaurantChange,
-  } = useRestaurantLink(outletId, selectedRestaurantId);
+  } = useRestaurantLink(outletId, selectedRestaurantId, {
+    onLinked: async (newRestaurantId: string) => {
+      // Immediately refetch the server
+      lastUpdateRef.current = Date.now();
+      // Invalidate then force refetch to guarantee up-to-date
+      await refetchOutletData();
+      // Extra defensive: update state from server after refetch
+      // setSelectedRestaurantId will automatically get set by useEffect on outletData
+      console.log('[OutletContext] Restaurant linked, forced outlet data refetch.');
+    }
+  });
 
   const value = {
     outletId,
