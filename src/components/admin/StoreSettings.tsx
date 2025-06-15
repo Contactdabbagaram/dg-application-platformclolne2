@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +16,7 @@ import StoreTaxData from './store/StoreTaxData';
 import StoreDiscountData from './store/StoreDiscountData';
 import StoreSyncDashboard from './store/StoreSyncDashboard';
 import { Settings, Database, RefreshCw, Save } from 'lucide-react';
+import RestaurantDropdown from './RestaurantDropdown';
 
 interface StoreSettingsProps {
   restaurantId: string;
@@ -34,7 +34,12 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
   const { toast } = useToast();
   const { saveStoreConfig, loading: configLoading } = usePetpoojaStore();
   const { triggerSync, syncStatus, loading: syncLoading } = usePetpoojaSync();
-  const { storeData, loading: dataLoading, refetch } = useStoreData(restaurantId);
+  
+  // Add: State for restaurantId selected (from outlet)
+  const [outletRestaurantId, setOutletRestaurantId] = useState<string | null>(restaurantId);
+  
+  // Refactor: Update fetching to use outlet's linked restaurant
+  const { storeData, loading: dataLoading, refetch } = useStoreData(outletRestaurantId || "");
 
   // Outlet meta state
   const [outletData, setOutletData] = useState<any>(null);
@@ -45,6 +50,68 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
   // For editable Store Code field
   const [storeCode, setStoreCode] = useState('');
 
+  // Refactor: Update fetching to use outlet's linked restaurant
+  useEffect(() => {
+    // Fetch outlet info to get its mapped restaurant
+    const fetchOutlet = async () => {
+      setOutletLoading(true);
+      const { data: outlet, error } = await supabase
+        .from('outlets')
+        .select('*')
+        .eq('id', outletId)
+        .maybeSingle();
+      if (!error && outlet) {
+        setOutletData(outlet);
+        setStoreCode(outlet.store_code ?? '');
+        setOutletRestaurantId(outlet.restaurant_id ?? null);
+      }
+      setOutletLoading(false);
+    };
+    if (outletId) fetchOutlet();
+  }, [outletId]);
+
+  // Add: When mapping changes, update in DB
+  const handleMapRestaurant = async (newRestaurantId: string) => {
+    setSaving(true);
+    try {
+      await supabase
+        .from('outlets')
+        .update({ restaurant_id: newRestaurantId, updated_at: new Date().toISOString() })
+        .eq('id', outletId);
+      setOutletRestaurantId(newRestaurantId);
+      toast({
+        title: 'Mapped Successfully',
+        description: 'Outlet is now linked to this restaurant.'
+      });
+    } catch {
+      toast({
+        title: 'Mapping Error',
+        description: 'Failed to map outlet to restaurant.',
+        variant: 'destructive'
+      });
+    }
+    setSaving(false);
+  };
+
+  useEffect(() => {
+    // Fetch restaurant meta when mapping changes
+    const fetchRestaurantMeta = async () => {
+      if (!outletRestaurantId) {
+        setRestaurantInfo(null);
+        return;
+      }
+      const { data: restaurant, error } = await supabase
+        .from('restaurants')
+        .select('*')
+        .eq('id', outletRestaurantId)
+        .maybeSingle();
+      if (!error && restaurant) setRestaurantInfo(restaurant);
+      else setRestaurantInfo(null);
+    };
+    fetchRestaurantMeta();
+  }, [outletRestaurantId]);
+
+  // Load outlet data
   useEffect(() => {
     // Fetch outlet basic info and restaurant info
     const loadOutletAndRestaurant = async () => {
@@ -394,6 +461,15 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
         <Badge variant={hasValidConfig ? "default" : "secondary"}>
           {hasValidConfig ? "Configured" : "Not Configured"}
         </Badge>
+      </div>
+
+      {/* New: Restaurant mapping dropdown */}
+      <div className="mb-4">
+        <RestaurantDropdown
+          value={outletRestaurantId}
+          onChange={handleMapRestaurant}
+          disabled={saving}
+        />
       </div>
 
       {/* Show Outlet details and Restaurant details above tabs */}
