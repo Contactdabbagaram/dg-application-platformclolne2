@@ -2,7 +2,8 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { supabase } from '@/integrations/supabase/client';
 import { useStoreData } from '@/hooks/useStoreData';
 import { useToast } from '@/hooks/use-toast';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
+import { useRestaurantLink } from '@/hooks/useRestaurantLink';
 
 interface OutletContextType {
   outletId: string | null;
@@ -33,10 +34,7 @@ export const OutletProvider = ({
   children,
 }: { outletId: string | null; children: ReactNode }) => {
   const [selectedRestaurantId, setSelectedRestaurantId] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [confirmationState, setConfirmationState] = useState<{ isOpen: boolean; newRestaurantId: string | null; restaurantName?: string }>({ isOpen: false, newRestaurantId: null });
 
   // Fetch outlet data using React Query for better state management and caching
   const {
@@ -107,86 +105,13 @@ export const OutletProvider = ({
 
   const restaurant = storeData?.restaurant || null;
   
-  // Handle prompting for restaurant link change
-  const handleRestaurantChange = async (newRestaurantId: string) => {
-    if (!outletId || newRestaurantId === selectedRestaurantId) return;
-
-    try {
-      const { data: restaurant, error } = await supabase
-        .from('restaurants')
-        .select('name')
-        .eq('id', newRestaurantId)
-        .single();
-      
-      if (error) throw error;
-
-      if (restaurant) {
-        setConfirmationState({ isOpen: true, newRestaurantId, restaurantName: restaurant.name });
-      } else {
-        throw new Error('Selected restaurant not found.');
-      }
-    } catch (error) {
-      console.error('Error fetching restaurant for confirmation:', error);
-      toast({
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'Could not find the selected restaurant.',
-        variant: 'destructive',
-      });
-    }
-  };
-  
-  const cancelRestaurantChange = () => {
-    setConfirmationState({ isOpen: false, newRestaurantId: null, restaurantName: undefined });
-  };
-
-  // Handle linking a restaurant to the outlet after confirmation
-  const confirmRestaurantChange = async () => {
-    const { newRestaurantId } = confirmationState;
-    if (!outletId || !newRestaurantId || newRestaurantId === selectedRestaurantId) return;
-
-    setSaving(true);
-    try {
-      const { data: restaurantExists, error: validateError } = await supabase
-        .from('restaurants')
-        .select('id, name')
-        .eq('id', newRestaurantId)
-        .maybeSingle();
-
-      if (validateError) throw validateError;
-      if (!restaurantExists) throw new Error('Selected restaurant does not exist');
-
-      const { error: updateError } = await supabase
-        .from('outlets')
-        .update({ restaurant_id: newRestaurantId, updated_at: new Date().toISOString() })
-        .eq('id', outletId);
-
-      if (updateError) throw updateError;
-
-      toast({
-        title: 'Restaurant Linked Successfully',
-        description: `Outlet has been linked to ${restaurantExists.name}.`,
-      });
-      
-      // Optimistically update the UI and then invalidate query to refetch in background
-      queryClient.setQueryData(['outletData', outletId], (oldData: any) => oldData ? { ...oldData, restaurant_id: newRestaurantId } : oldData);
-      setSelectedRestaurantId(newRestaurantId);
-      await queryClient.invalidateQueries({ queryKey: ['outletData', outletId] });
-      await queryClient.invalidateQueries({ queryKey: ['store-data', newRestaurantId] });
-
-    } catch (error) {
-      console.error('Error linking restaurant:', error);
-      toast({
-        title: 'Linking Failed',
-        description: error instanceof Error ? error.message : 'Failed to link outlet to restaurant.',
-        variant: 'destructive',
-      });
-      // On failure, refetch to revert to the correct state from DB
-      await queryClient.refetchQueries({ queryKey: ['outletData', outletId] });
-    } finally {
-      setSaving(false);
-      cancelRestaurantChange();
-    }
-  };
+  const {
+    saving,
+    confirmationState,
+    handleRestaurantChange,
+    confirmRestaurantChange,
+    cancelRestaurantChange,
+  } = useRestaurantLink(outletId, selectedRestaurantId);
 
   const value = {
     outletId,
