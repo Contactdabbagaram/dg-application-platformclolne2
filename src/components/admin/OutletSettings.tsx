@@ -45,14 +45,7 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Service area settings
-  const [serviceAreaType, setServiceAreaType] = useState<'radius' | 'geofence'>('radius');
-  const [deliveryRadius, setDeliveryRadius] = useState(10);
-  const [geofenceCoordinates, setGeofenceCoordinates] = useState<GeofencePoint[]>([]);
-  const [maxDeliveryDistance, setMaxDeliveryDistance] = useState(10);
-  const [estimatedDeliveryTime, setEstimatedDeliveryTime] = useState(30);
-
-  // Editable fields - removed description since it doesn't exist in outlets table
+  // Consolidated editable fields - all outlet data in one state
   const [editableFields, setEditableFields] = useState({
     name: '',
     store_code: '',
@@ -64,7 +57,11 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
     min_order_amount: 0,
     is_active: true,
     latitude: 0,
-    longitude: 0
+    longitude: 0,
+    service_area_type: 'radius' as 'radius' | 'geofence',
+    geofence_coordinates: [] as GeofencePoint[],
+    max_delivery_distance_km: 10,
+    estimated_delivery_time_minutes: 30
   });
 
   // Load outlet data
@@ -72,15 +69,22 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
     const loadOutletData = async () => {
       setLoading(true);
       try {
+        console.log('Loading outlet data for:', outletName);
         const { data, error } = await supabase
           .from('outlets')
           .select('*')
           .eq('name', outletName)
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('Error loading outlet data:', error);
+          throw error;
+        }
 
+        console.log('Loaded outlet data:', data);
         setOutletData(data);
+        
+        // Update all editable fields from database
         setEditableFields({
           name: data.name || '',
           store_code: data.store_code || '',
@@ -92,17 +96,16 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
           min_order_amount: data.min_order_amount || 0,
           is_active: data.is_active || true,
           latitude: data.latitude || 0,
-          longitude: data.longitude || 0
+          longitude: data.longitude || 0,
+          service_area_type: (data.service_area_type as 'radius' | 'geofence') || 'radius',
+          geofence_coordinates: (data.geofence_coordinates as unknown as GeofencePoint[]) || [],
+          max_delivery_distance_km: data.max_delivery_distance_km || 10,
+          estimated_delivery_time_minutes: data.estimated_delivery_time_minutes || 30
         });
-
-        setServiceAreaType((data.service_area_type as 'radius' | 'geofence') || 'radius');
-        setDeliveryRadius(data.delivery_radius_km || 10);
-        setGeofenceCoordinates((data.geofence_coordinates as unknown as GeofencePoint[]) || []);
-        setMaxDeliveryDistance(data.max_delivery_distance_km || 10);
-        setEstimatedDeliveryTime(data.estimated_delivery_time_minutes || 30);
 
         // Load restaurant data if available
         if (data.restaurant_id) {
+          console.log('Loading restaurant data for ID:', data.restaurant_id);
           const { data: restaurant, error: restaurantError } = await supabase
             .from('restaurants')
             .select('*')
@@ -110,7 +113,10 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
             .single();
 
           if (!restaurantError) {
+            console.log('Loaded restaurant data:', restaurant);
             setRestaurantData(restaurant);
+          } else {
+            console.error('Error loading restaurant data:', restaurantError);
           }
         }
       } catch (error) {
@@ -133,6 +139,16 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
   };
 
   const handleFieldChange = (field: string, value: any) => {
+    console.log('Field change:', field, value);
+    setEditableFields(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Handle service area specific field changes
+  const handleServiceAreaChange = (field: string, value: any) => {
+    console.log('Service area change:', field, value);
     setEditableFields(prev => ({
       ...prev,
       [field]: value
@@ -141,37 +157,53 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
 
   const saveBasicSettings = async () => {
     if (!outletData) {
+      console.error("Cannot save settings: outlet data is not loaded yet.");
       toast.error("Cannot save settings: outlet data is not loaded yet.");
       return;
     }
 
     setSaving(true);
+    console.log('Saving basic settings for outlet:', outletData.id);
+    console.log('Data to save:', editableFields);
+
     try {
-      const { error } = await supabase
+      const updateData = {
+        name: editableFields.name,
+        store_code: editableFields.store_code,
+        address: editableFields.address,
+        phone: editableFields.phone,
+        email: editableFields.email,
+        delivery_radius_km: editableFields.delivery_radius_km,
+        delivery_fee: editableFields.delivery_fee,
+        min_order_amount: editableFields.min_order_amount,
+        is_active: editableFields.is_active,
+        latitude: editableFields.latitude,
+        longitude: editableFields.longitude,
+        updated_at: new Date().toISOString()
+      };
+
+      console.log('Sending update data to database:', updateData);
+
+      const { data: updatedData, error } = await supabase
         .from('outlets')
-        .update({
-          name: editableFields.name,
-          store_code: editableFields.store_code,
-          address: editableFields.address,
-          phone: editableFields.phone,
-          email: editableFields.email,
-          delivery_radius_km: editableFields.delivery_radius_km,
-          delivery_fee: editableFields.delivery_fee,
-          min_order_amount: editableFields.min_order_amount,
-          is_active: editableFields.is_active,
-          latitude: editableFields.latitude,
-          longitude: editableFields.longitude,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', outletData.id);
+        .update(updateData)
+        .eq('id', outletData.id)
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database error during save:', error);
+        throw error;
+      }
 
+      console.log('Successfully saved data:', updatedData);
       toast.success('Basic settings updated successfully');
-      setOutletData({ ...outletData, ...editableFields });
+      
+      // Update local state with saved data
+      setOutletData({ ...outletData, ...updatedData });
     } catch (error) {
       console.error('Error saving basic settings:', error);
-      toast.error('Failed to save basic settings');
+      toast.error(`Failed to save basic settings: ${error.message || 'Unknown error'}`);
     } finally {
       setSaving(false);
     }
@@ -185,30 +217,40 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
     }
 
     setLoading(true);
-    
-    const settingsToSave = {
-      serviceAreaType,
-      deliveryRadius,
-      geofenceCoordinates,
-      maxDeliveryDistance,
-      estimatedDeliveryTime
-    };
-
-    console.log(`Saving service area settings for outlet ${outletData.id}:`, settingsToSave);
+    console.log('Saving service area settings for outlet:', outletData.id);
+    console.log('Service area data to save:', {
+      serviceAreaType: editableFields.service_area_type,
+      deliveryRadius: editableFields.delivery_radius_km,
+      geofenceCoordinates: editableFields.geofence_coordinates,
+      maxDeliveryDistance: editableFields.max_delivery_distance_km,
+      estimatedDeliveryTime: editableFields.estimated_delivery_time_minutes
+    });
 
     try {
+      const settingsToSave = {
+        serviceAreaType: editableFields.service_area_type,
+        deliveryRadius: editableFields.delivery_radius_km,
+        geofenceCoordinates: editableFields.geofence_coordinates,
+        maxDeliveryDistance: editableFields.max_delivery_distance_km,
+        estimatedDeliveryTime: editableFields.estimated_delivery_time_minutes
+      };
+
       const { data, error } = await updateOutletServiceArea(outletData.id, settingsToSave);
 
       if (error) {
+        console.error('Database error during service area save:', error);
         throw error;
       }
 
+      console.log('Successfully saved service area settings:', data);
       toast.success('Service area settings updated successfully');
-      console.log('Service area settings saved successfully. Response data:', data);
+      
+      // Update local outlet data with saved settings
+      setOutletData({ ...outletData, ...data });
 
     } catch (error) {
       console.error('Error saving service area settings:', error);
-      toast.error('Failed to save service area settings. Please check console for details.');
+      toast.error(`Failed to save service area settings: ${error.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
@@ -398,7 +440,6 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
                   )}
 
                   {section.id === 'service-area' && (
-                    
                     <div className="space-y-6">
                       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <h4 className="font-medium text-blue-900 mb-2">Service Area Configuration</h4>
@@ -411,7 +452,7 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
                       <div className="space-y-4">
                         <div className="space-y-2">
                           <Label>Service Area Type</Label>
-                          <Select value={serviceAreaType} onValueChange={(value: 'radius' | 'geofence') => setServiceAreaType(value)}>
+                          <Select value={editableFields.service_area_type} onValueChange={(value: 'radius' | 'geofence') => handleServiceAreaChange('service_area_type', value)}>
                             <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
@@ -438,8 +479,8 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
                             <Input
                               id="delivery-radius"
                               type="number"
-                              value={deliveryRadius}
-                              onChange={(e) => setDeliveryRadius(parseFloat(e.target.value) || 0)}
+                              value={editableFields.delivery_radius_km}
+                              onChange={(e) => handleServiceAreaChange('delivery_radius_km', parseFloat(e.target.value) || 0)}
                               min="0"
                               step="0.1"
                             />
@@ -449,8 +490,8 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
                             <Input
                               id="max-distance"
                               type="number"
-                              value={maxDeliveryDistance}
-                              onChange={(e) => setMaxDeliveryDistance(parseFloat(e.target.value) || 0)}
+                              value={editableFields.max_delivery_distance_km}
+                              onChange={(e) => handleServiceAreaChange('max_delivery_distance_km', parseFloat(e.target.value) || 0)}
                               min="0"
                               step="0.1"
                             />
@@ -460,23 +501,22 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
                             <Input
                               id="delivery-time"
                               type="number"
-                              value={estimatedDeliveryTime}
-                              onChange={(e) => setEstimatedDeliveryTime(parseInt(e.target.value) || 30)}
+                              value={editableFields.estimated_delivery_time_minutes}
+                              onChange={(e) => handleServiceAreaChange('estimated_delivery_time_minutes', parseInt(e.target.value) || 30)}
                               min="10"
                             />
                           </div>
                         </div>
-
                       </div>
 
                       <GeofenceMap
                         outletLatitude={editableFields.latitude || 19.1568}
                         outletLongitude={editableFields.longitude || 72.9940}
-                        geofenceCoordinates={geofenceCoordinates}
-                        deliveryRadius={deliveryRadius}
-                        onGeofenceChange={setGeofenceCoordinates}
-                        onRadiusChange={setDeliveryRadius}
-                        serviceAreaType={serviceAreaType}
+                        geofenceCoordinates={editableFields.geofence_coordinates}
+                        deliveryRadius={editableFields.delivery_radius_km}
+                        onGeofenceChange={(coordinates) => handleServiceAreaChange('geofence_coordinates', coordinates)}
+                        onRadiusChange={(radius) => handleServiceAreaChange('delivery_radius_km', radius)}
+                        serviceAreaType={editableFields.service_area_type}
                       />
 
                       <div className="flex gap-2">
