@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useStoreData } from '@/hooks/useStoreData';
@@ -16,6 +15,7 @@ interface OutletContextType {
   storeError: Error | null;
   refetchStoreData: () => void;
   restaurant: any | null;
+  refetchOutletData: () => Promise<void>;
 }
 
 const OutletContext = createContext<OutletContextType | undefined>(undefined);
@@ -128,6 +128,7 @@ export const OutletProvider = ({ outletId, children }: { outletId: string | null
     storeError,
     refetchStoreData,
     restaurant,
+    refetchOutletData: fetchOutletData,
   };
 
   return (

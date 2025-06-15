@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,6 +44,7 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
     refetchStoreData: refetch,
     restaurant: restaurantInfo,
     loading: outletLoading,
+    refetchOutletData,
   } = useOutlet();
 
   const [storeCode, setStoreCode] = useState('');
@@ -111,7 +113,7 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
         description: 'Store code has been updated successfully.',
       });
       
-      setOutletData({ ...outletData, store_code: storeCode });
+      await refetchOutletData();
     } catch (error) {
       toast({
         title: 'Error',
