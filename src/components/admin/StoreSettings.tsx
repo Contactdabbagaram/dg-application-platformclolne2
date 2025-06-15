@@ -353,10 +353,6 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
               <h4 className="font-medium mb-3">Restaurant Details</h4>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <Label>Name</Label>
-                  <Input value={restaurantInfo.name || ''} readOnly />
-                </div>
-                <div>
                   <Label>Status</Label>
                   <Input value={restaurantInfo.status || ''} readOnly />
                 </div>
