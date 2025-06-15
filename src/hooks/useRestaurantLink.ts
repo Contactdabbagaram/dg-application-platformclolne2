@@ -64,7 +64,7 @@ export const useRestaurantLink = (
 
     setSaving(true);
     try {
-      // Check authentication before proceeding!
+      // Auth check
       const {
         data: { session },
         error: sessionError,
@@ -90,7 +90,7 @@ export const useRestaurantLink = (
         return;
       }
 
-      // Continue: validate the target restaurant exists
+      // Validate restaurant exists
       const { data: restaurantExists, error: validateError } = await supabase
         .from('restaurants')
         .select('id, name')
@@ -100,18 +100,8 @@ export const useRestaurantLink = (
       if (validateError) throw validateError;
       if (!restaurantExists) throw new Error('Selected restaurant does not exist');
 
-      // DEBUG: Show user info before update
       console.log('[useRestaurantLink] User authenticated as:', session.user.id, session.user.email);
-
-      // DEBUG: Log the intended update
-      console.log(
-        `[useRestaurantLink] Attempting outlet update by user:`,
-        {
-          outletId,
-          newRestaurantId,
-          authenticatedUserId: session.user.id,
-        }
-      );
+      console.log(`[useRestaurantLink] Attempting outlet update by user:`, { outletId, newRestaurantId, authenticatedUserId: session.user.id });
 
       const { error: updateError } = await supabase
         .from('outlets')
@@ -145,9 +135,13 @@ export const useRestaurantLink = (
 
       console.log(`[useRestaurantLink] Success: Outlet ${outletId} linked to restaurant ${newRestaurantId}`);
 
+      // Carefully invalidate & refetch to guarantee up-to-date context and dashboards
       await queryClient.invalidateQueries({ queryKey: ['outletData', outletId] });
+      await queryClient.refetchQueries({ queryKey: ['outletData', outletId] });
       await queryClient.invalidateQueries({ queryKey: ['store-data', newRestaurantId] });
+      await queryClient.refetchQueries({ queryKey: ['store-data', newRestaurantId] });
 
+      // Let context hook complete final sync
       if (options && typeof options.onLinked === 'function') {
         await options.onLinked(newRestaurantId);
       }

@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -32,6 +33,19 @@ const OutletDashboard = ({ outletName, outletId }: OutletDashboardProps) => {
   const loading = outletLoading || (isRestaurantLinked && storeLoading);
   const error = storeError;
   const refetch = refetchStoreData;
+
+  // If a link operation is in progress, show a global overlay for fast feedback
+  if (saving) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[40vh]">
+        <div className="animate-spin mb-4 text-blue-500">
+          <RefreshCw className="w-10 h-10" />
+        </div>
+        <div className="text-lg font-medium mb-2">Linking restaurant...</div>
+        <div className="text-gray-600">Please wait while your outlet is being connected.</div>
+      </div>
+    );
+  }
 
   console.log('OutletDashboard debug:', {
     selectedRestaurantId,

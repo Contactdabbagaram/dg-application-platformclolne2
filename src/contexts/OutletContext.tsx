@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useStoreData } from '@/hooks/useStoreData';
@@ -27,7 +28,7 @@ interface OutletContextType {
   };
 }
 
-const OutletContext = createContext<OutletContextType | undefined>(undefined);
+// ... OutletContext creation stays the same
 
 export const OutletProvider = ({
   outletId,
@@ -35,11 +36,9 @@ export const OutletProvider = ({
 }: { outletId: string | null; children: ReactNode }) => {
   const [selectedRestaurantId, setSelectedRestaurantId] = useState<string | null>(null);
   const { toast } = useToast();
-
-  // Used to catch staleness issues
   const lastUpdateRef = useRef<number>(0);
 
-  // Fetch outlet data using React Query for better state management and caching
+  // Query for outlet data
   const {
     data: outletData,
     isLoading: loading,
@@ -59,7 +58,7 @@ export const OutletProvider = ({
         console.error('Error fetching outlet:', outletError);
         throw outletError;
       }
-      // Auto-cleanup for orphaned restaurant links
+      // orphaned link cleanup
       if (outlet?.restaurant_id) {
         const { data: restaurantExists } = await supabase
           .from('restaurants')
@@ -80,11 +79,13 @@ export const OutletProvider = ({
     enabled: !!outletId,
   });
 
-  // Keep selectedRestaurantId always in sync with server data
+  // PROPER: Always set selectedRestaurantId from latest server data.
   useEffect(() => {
     if (outletData) {
       setSelectedRestaurantId(outletData.restaurant_id || null);
       console.log('[OutletContext] Set selectedRestaurantId from outletData:', outletData.restaurant_id);
+    } else {
+      setSelectedRestaurantId(null); // explicit null if orphaned
     }
   }, [outletData]);
 
@@ -106,7 +107,7 @@ export const OutletProvider = ({
 
   const restaurant = storeData?.restaurant || null;
 
-  // Custom function for updating restaurant linkage
+  // Linking logic
   const {
     saving,
     confirmationState,
@@ -115,13 +116,12 @@ export const OutletProvider = ({
     cancelRestaurantChange,
   } = useRestaurantLink(outletId, selectedRestaurantId, {
     onLinked: async (newRestaurantId: string) => {
-      // Immediately refetch the server
       lastUpdateRef.current = Date.now();
-      // Invalidate then force refetch to guarantee up-to-date
+      // After link, refetch outlet and store data
       await refetchOutletData();
-      // Extra defensive: update state from server after refetch
-      // setSelectedRestaurantId will automatically get set by useEffect on outletData
-      console.log('[OutletContext] Restaurant linked, forced outlet data refetch.');
+      await refetchStoreData();
+      // Context's useEffect on outletData will sync selectedRestaurantId!
+      console.log('[OutletContext] Restaurant linked, forced outlet data + store data refetch.');
     }
   });
 
