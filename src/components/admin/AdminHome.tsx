@@ -1,9 +1,10 @@
+
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Store, Settings } from 'lucide-react';
 
 interface AdminHomeProps {
-  outlets: { id: string; name: string; city: string | null }[];
+  outlets: { id: string; name: string; address: string | null }[];
   onNavigateToBusinessSettings: () => void;
   onNavigateToOutletManagement: () => void;
   onOutletSelect: (outlet: { id: string; name: string }) => void;
@@ -122,7 +123,7 @@ const AdminHome = ({
                     <span className="font-medium">{outlet.name}</span>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="text-gray-600">{outlet.city || 'N/A'}</span>
+                    <span className="text-gray-600 truncate max-w-xs">{outlet.address || 'N/A'}</span>
                     <Button 
                       variant="ghost" 
                       size="sm" 

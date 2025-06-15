@@ -65,7 +65,7 @@ const Admin = () => {
 
   useEffect(() => {
     const fetchOutlets = async () => {
-      const { data, error } = await supabase.from('outlets').select('id, name, city').order('name');
+      const { data, error } = await supabase.from('outlets').select('id, name, address').order('name');
       if (error) {
         console.error("Error fetching outlets:", error);
       } else if (data) {
