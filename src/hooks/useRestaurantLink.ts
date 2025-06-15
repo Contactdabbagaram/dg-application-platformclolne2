@@ -73,12 +73,33 @@ export const useRestaurantLink = (
         .update({ restaurant_id: newRestaurantId, updated_at: new Date().toISOString() })
         .eq('id', outletId);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        // Detect RLS error for more actionable feedback
+        const rlsMessage = "Permission denied: Row Level Security policy prevented updating the outlet. Please check your access rights.";
+        if (updateError.message && updateError.message.toLowerCase().includes("row level security")) {
+          toast({
+            title: 'Permission Denied',
+            description: rlsMessage,
+            variant: 'destructive',
+          });
+          console.error('[useRestaurantLink] RLS UPDATE error:', updateError);
+        } else {
+          toast({
+            title: 'Linking Failed',
+            description: updateError.message || 'Failed to link outlet to restaurant.',
+            variant: 'destructive',
+          });
+          console.error('[useRestaurantLink] Update error:', updateError);
+        }
+        throw updateError;
+      }
 
       toast({
         title: 'Restaurant Linked Successfully',
         description: `Outlet has been linked to ${restaurantExists.name}.`,
       });
+
+      console.log(`[useRestaurantLink] Success: Outlet ${outletId} linked to restaurant ${newRestaurantId}`);
 
       await queryClient.invalidateQueries({ queryKey: ['outletData', outletId] });
       await queryClient.invalidateQueries({ queryKey: ['store-data', newRestaurantId] });
@@ -89,12 +110,15 @@ export const useRestaurantLink = (
       }
 
     } catch (error) {
-      console.error('Error linking restaurant:', error);
-      toast({
-        title: 'Linking Failed',
-        description: error instanceof Error ? error.message : 'Failed to link outlet to restaurant.',
-        variant: 'destructive',
-      });
+      // If thrown above, error is already handled, just ensure loading is stopped and dialog closed
+      if (!(error instanceof Error)) {
+        toast({
+          title: 'Unknown Error',
+          description: 'An unknown error occurred while linking outlet.',
+          variant: 'destructive',
+        });
+        console.error('[useRestaurantLink] Unknown error:', error);
+      }
       await queryClient.refetchQueries({ queryKey: ['outletData', outletId] });
     } finally {
       setSaving(false);
