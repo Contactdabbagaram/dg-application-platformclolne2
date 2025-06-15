@@ -15,7 +15,7 @@ import StoreMenuData from './store/StoreMenuData';
 import StoreTaxData from './store/StoreTaxData';
 import StoreDiscountData from './store/StoreDiscountData';
 import StoreSyncDashboard from './store/StoreSyncDashboard';
-import { Settings, Database, RefreshCw, Save } from 'lucide-react';
+import { Settings, RefreshCw, Save, CheckCircle, AlertCircle } from 'lucide-react';
 import RestaurantDropdown from './RestaurantDropdown';
 
 interface StoreSettingsProps {
@@ -35,24 +35,23 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
   const { saveStoreConfig, loading: configLoading } = usePetpoojaStore();
   const { triggerSync, syncStatus, loading: syncLoading } = usePetpoojaSync();
   
-  // Add: State for restaurantId selected (from outlet)
-  const [outletRestaurantId, setOutletRestaurantId] = useState<string | null>(restaurantId);
+  // State for selected restaurant
+  const [selectedRestaurantId, setSelectedRestaurantId] = useState<string | null>(null);
   
-  // Refactor: Update fetching to use outlet's linked restaurant
-  const { storeData, loading: dataLoading, refetch } = useStoreData(outletRestaurantId || "");
-
-  // Outlet meta state
+  // State for outlet data
   const [outletData, setOutletData] = useState<any>(null);
   const [restaurantInfo, setRestaurantInfo] = useState<any>(null);
   const [outletLoading, setOutletLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
+  // Use selected restaurant data for store operations
+  const { storeData, loading: dataLoading, refetch } = useStoreData(selectedRestaurantId || "");
+
   // For editable Store Code field
   const [storeCode, setStoreCode] = useState('');
 
-  // Refactor: Update fetching to use outlet's linked restaurant
+  // Load outlet data and initial restaurant mapping
   useEffect(() => {
-    // Fetch outlet info to get its mapped restaurant
     const fetchOutlet = async () => {
       setOutletLoading(true);
       const { data: outlet, error } = await supabase
@@ -60,134 +59,47 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
         .select('*')
         .eq('id', outletId)
         .maybeSingle();
+      
       if (!error && outlet) {
         setOutletData(outlet);
         setStoreCode(outlet.store_code ?? '');
-        setOutletRestaurantId(outlet.restaurant_id ?? null);
+        // Set the initial restaurant selection from outlet's mapping
+        if (outlet.restaurant_id) {
+          setSelectedRestaurantId(outlet.restaurant_id);
+        }
       }
       setOutletLoading(false);
     };
+    
     if (outletId) fetchOutlet();
   }, [outletId]);
 
-  // Add: When mapping changes, update in DB
-  const handleMapRestaurant = async (newRestaurantId: string) => {
-    setSaving(true);
-    try {
-      await supabase
-        .from('outlets')
-        .update({ restaurant_id: newRestaurantId, updated_at: new Date().toISOString() })
-        .eq('id', outletId);
-      setOutletRestaurantId(newRestaurantId);
-      toast({
-        title: 'Mapped Successfully',
-        description: 'Outlet is now linked to this restaurant.'
-      });
-    } catch {
-      toast({
-        title: 'Mapping Error',
-        description: 'Failed to map outlet to restaurant.',
-        variant: 'destructive'
-      });
-    }
-    setSaving(false);
-  };
-
+  // Load restaurant details when restaurant is selected
   useEffect(() => {
-    // Fetch restaurant meta when mapping changes
-    const fetchRestaurantMeta = async () => {
-      if (!outletRestaurantId) {
+    const fetchRestaurantDetails = async () => {
+      if (!selectedRestaurantId) {
         setRestaurantInfo(null);
         return;
       }
+      
       const { data: restaurant, error } = await supabase
         .from('restaurants')
         .select('*')
-        .eq('id', outletRestaurantId)
+        .eq('id', selectedRestaurantId)
         .maybeSingle();
-      if (!error && restaurant) setRestaurantInfo(restaurant);
-      else setRestaurantInfo(null);
-    };
-    fetchRestaurantMeta();
-  }, [outletRestaurantId]);
-
-  // Load outlet data
-  useEffect(() => {
-    // Fetch outlet basic info and restaurant info
-    const loadOutletAndRestaurant = async () => {
-      setOutletLoading(true);
-      try {
-        const { data: outlet, error } = await supabase
-          .from('outlets')
-          .select('*')
-          .eq('id', outletId)
-          .maybeSingle();
-
-        if (error || !outlet) {
-          setOutletData(null);
-          setRestaurantInfo(null);
-          setOutletLoading(false);
-          return;
-        }
-
-        setOutletData(outlet);
-        setStoreCode(outlet.store_code ?? '');
-
-        // Fetch related restaurant details
-        if (outlet.restaurant_id) {
-          const { data: restaurant, error: errR } = await supabase
-            .from('restaurants')
-            .select('*')
-            .eq('id', outlet.restaurant_id)
-            .maybeSingle();
-          if (!errR && restaurant) setRestaurantInfo(restaurant);
-          else setRestaurantInfo(null);
-        } else {
-          setRestaurantInfo(null);
-        }
-      } finally {
-        setOutletLoading(false);
+      
+      if (!error && restaurant) {
+        setRestaurantInfo(restaurant);
+      } else {
+        setRestaurantInfo(null);
       }
     };
+    
+    fetchRestaurantDetails();
+  }, [selectedRestaurantId]);
 
-    if (outletId) loadOutletAndRestaurant();
-  }, [outletId]);
-
-  // Update restaurant info if user changes the store code
+  // Load outlet-specific PetPooja credentials
   useEffect(() => {
-    const getByStoreCode = async () => {
-      if (!storeCode.trim()) return;
-      setOutletLoading(true);
-      // Find outlet by store_code
-      const { data: outlet, error } = await supabase
-        .from('outlets')
-        .select('*')
-        .eq('store_code', storeCode)
-        .maybeSingle();
-
-      if (!error && outlet) {
-        setOutletData(outlet);
-
-        // Fetch connected restaurant
-        if (outlet.restaurant_id) {
-          const { data: restaurant, error: errR } = await supabase
-            .from('restaurants')
-            .select('*')
-            .eq('id', outlet.restaurant_id)
-            .maybeSingle();
-          if (!errR && restaurant) setRestaurantInfo(restaurant);
-          else setRestaurantInfo(null);
-        } else {
-          setRestaurantInfo(null);
-        }
-      }
-      setOutletLoading(false);
-    };
-    if (storeCode?.length >= 6) getByStoreCode();
-  }, [storeCode]);
-
-  useEffect(() => {
-    // Fetch outlet-specific PetPooja credentials
     const fetchOutletConfig = async () => {
       const { data: outlet } = await supabase
         .from('outlets')
@@ -209,6 +121,37 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
       fetchOutletConfig();
     }
   }, [outletId]);
+
+  // Handle restaurant selection and update outlet mapping
+  const handleRestaurantChange = async (newRestaurantId: string) => {
+    setSaving(true);
+    try {
+      // Update outlet's restaurant mapping in database
+      await supabase
+        .from('outlets')
+        .update({ 
+          restaurant_id: newRestaurantId, 
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', outletId);
+      
+      // Update local state
+      setSelectedRestaurantId(newRestaurantId);
+      setOutletData(prev => prev ? { ...prev, restaurant_id: newRestaurantId } : null);
+      
+      toast({
+        title: 'Restaurant Linked Successfully',
+        description: 'Outlet has been linked to the selected restaurant.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Linking Failed',
+        description: 'Failed to link outlet to restaurant.',
+        variant: 'destructive',
+      });
+    }
+    setSaving(false);
+  };
 
   const handleSaveConfig = async () => {
     try {
@@ -243,7 +186,6 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
         description: 'Store code has been updated successfully.',
       });
       
-      // Refresh outlet data
       setOutletData({ ...outletData, store_code: storeCode });
     } catch (error) {
       toast({
@@ -263,7 +205,6 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
         title: 'Sync Started',
         description: `${syncType === 'all' ? 'Full' : syncType} sync has been initiated.`,
       });
-      // Refetch data after sync
       setTimeout(() => refetch(), 2000);
     } catch (error) {
       toast({
@@ -275,8 +216,9 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
   };
 
   const hasValidConfig = petpoojaConfig.restaurantId && petpoojaConfig.appKey && petpoojaConfig.appSecret;
+  const isRestaurantLinked = selectedRestaurantId && restaurantInfo;
 
-  // Outlet basic info card UI
+  // Outlet basic info component
   function BasicOutletInfo() {
     if (outletLoading) {
       return <p className="p-4 text-gray-600">Loading outlet details...</p>;
@@ -284,6 +226,7 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
     if (!outletData) {
       return <p className="p-4 text-red-600">Outlet not found or not selected.</p>;
     }
+    
     return (
       <Card className="mb-4">
         <CardHeader>
@@ -374,81 +317,89 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
     );
   }
 
-  // Restaurant meta card UI
-  function RestaurantMetaInfo() {
-    if (!restaurantInfo) return null;
+  // Connected Restaurant Information component
+  function ConnectedRestaurantInfo() {
     return (
       <Card className="mb-4">
         <CardHeader>
-          <CardTitle>Connected Restaurant Details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label>Name</Label>
-              <Input value={restaurantInfo.name || ''} readOnly />
-            </div>
-            <div>
-              <Label>Restaurant ID</Label>
-              <Input value={restaurantInfo.id || ''} readOnly />
-            </div>
-            <div>
-              <Label>Status</Label>
-              <Input value={restaurantInfo.status || ''} readOnly />
-            </div>
-            <div>
-              <Label>City</Label>
-              <Input value={restaurantInfo.city || ''} readOnly />
-            </div>
-            <div>
-              <Label>State</Label>
-              <Input value={restaurantInfo.state || ''} readOnly />
-            </div>
-            <div>
-              <Label>Country</Label>
-              <Input value={restaurantInfo.country || ''} readOnly />
-            </div>
-            <div>
-              <Label>Address</Label>
-              <Input value={restaurantInfo.address || ''} readOnly />
-            </div>
-            <div>
-              <Label>Min Order</Label>
-              <Input value={restaurantInfo.minimum_order_amount || ''} readOnly />
-            </div>
-            <div>
-              <Label>Delivery Charges</Label>
-              <Input value={restaurantInfo.delivery_charge || ''} readOnly />
-            </div>
-            <div>
-              <Label>Prep Time</Label>
-              <Input value={restaurantInfo.minimum_prep_time || ''} readOnly />
-            </div>
-            <div>
-              <Label>Currency Symbol</Label>
-              <Input value={restaurantInfo.currency_symbol || ''} readOnly />
-            </div>
-            <div>
-              <Label>Contact Information</Label>
-              <Input value={restaurantInfo.contact_information || ''} readOnly />
-            </div>
-            <div>
-              <Label>Landmark</Label>
-              <Input value={restaurantInfo.landmark || ''} readOnly />
-            </div>
-            <div>
-              <Label>Latitude</Label>
-              <Input value={restaurantInfo.latitude || ''} readOnly />
-            </div>
-            <div>
-              <Label>Longitude</Label>
-              <Input value={restaurantInfo.longitude || ''} readOnly />
-            </div>
-            <div>
-              <Label>Packaging Charge</Label>
-              <Input value={restaurantInfo.packaging_charge || ''} readOnly />
-            </div>
+          <div className="flex items-center justify-between">
+            <CardTitle>Connected Restaurant Information</CardTitle>
+            <Badge variant={isRestaurantLinked ? "default" : "secondary"}>
+              {isRestaurantLinked ? (
+                <><CheckCircle className="h-3 w-3 mr-1" /> Linked</>
+              ) : (
+                <><AlertCircle className="h-3 w-3 mr-1" /> Not Linked</>
+              )}
+            </Badge>
           </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <p className="text-sm text-blue-800">
+              Link this outlet to a restaurant to access menu data, taxes, discounts, and other restaurant-specific settings.
+            </p>
+          </div>
+          
+          <RestaurantDropdown
+            value={selectedRestaurantId}
+            onChange={handleRestaurantChange}
+            disabled={saving}
+            label="Restaurant Name"
+            placeholder="Choose a restaurant to link with this outlet"
+          />
+          
+          {isRestaurantLinked && restaurantInfo && (
+            <div className="mt-6 pt-4 border-t">
+              <h4 className="font-medium mb-3">Restaurant Details</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label>Name</Label>
+                  <Input value={restaurantInfo.name || ''} readOnly />
+                </div>
+                <div>
+                  <Label>Status</Label>
+                  <Input value={restaurantInfo.status || ''} readOnly />
+                </div>
+                <div>
+                  <Label>Currency</Label>
+                  <Input value={restaurantInfo.currency_symbol || '₹'} readOnly />
+                </div>
+                <div>
+                  <Label>City</Label>
+                  <Input value={restaurantInfo.city || ''} readOnly />
+                </div>
+                <div>
+                  <Label>State</Label>
+                  <Input value={restaurantInfo.state || ''} readOnly />
+                </div>
+                <div>
+                  <Label>Country</Label>
+                  <Input value={restaurantInfo.country || ''} readOnly />
+                </div>
+                <div>
+                  <Label>Address</Label>
+                  <Input value={restaurantInfo.address || ''} readOnly />
+                </div>
+                <div>
+                  <Label>Min Order Amount</Label>
+                  <Input value={restaurantInfo.minimum_order_amount || ''} readOnly />
+                </div>
+                <div>
+                  <Label>Delivery Charge</Label>
+                  <Input value={restaurantInfo.delivery_charge || ''} readOnly />
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {!isRestaurantLinked && (
+            <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-sm text-yellow-800">
+                <AlertCircle className="h-4 w-4 inline mr-2" />
+                Please select a restaurant to access store management features.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -463,140 +414,145 @@ const StoreSettings = ({ restaurantId, outletId }: StoreSettingsProps) => {
         </Badge>
       </div>
 
-      {/* New: Restaurant mapping dropdown */}
-      <div className="mb-4">
-        <RestaurantDropdown
-          value={outletRestaurantId}
-          onChange={handleMapRestaurant}
-          disabled={saving}
-        />
-      </div>
-
-      {/* Show Outlet details and Restaurant details above tabs */}
+      {/* Show Outlet details and Restaurant connection */}
       <BasicOutletInfo />
-      <RestaurantMetaInfo />
+      <ConnectedRestaurantInfo />
 
-      <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="menu">Menu Data</TabsTrigger>
-          <TabsTrigger value="taxes">Taxes</TabsTrigger>
-          <TabsTrigger value="discounts">Discounts</TabsTrigger>
-          <TabsTrigger value="sync">Sync Status</TabsTrigger>
-          <TabsTrigger value="settings">Settings</TabsTrigger>
-        </TabsList>
+      {/* Show warning if no restaurant is linked */}
+      {!isRestaurantLinked && (
+        <Card className="border-yellow-200 bg-yellow-50">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 text-yellow-800">
+              <AlertCircle className="h-5 w-5" />
+              <p>Link a restaurant above to access store management features.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-        <TabsContent value="overview">
-          <StoreOverview 
-            restaurant={storeData?.restaurant} 
-            loading={dataLoading}
-            onRefresh={refetch}
-          />
-        </TabsContent>
+      {/* Tabs - only show if restaurant is linked */}
+      {isRestaurantLinked && (
+        <Tabs defaultValue="overview" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="menu">Menu Data</TabsTrigger>
+            <TabsTrigger value="taxes">Taxes</TabsTrigger>
+            <TabsTrigger value="discounts">Discounts</TabsTrigger>
+            <TabsTrigger value="sync">Sync Status</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="menu">
-          {/* Pass restaurantInfo to Menu tab */}
-          <StoreMenuData 
-            categories={storeData?.categories || []}
-            items={storeData?.items || []}
-            variations={storeData?.variations || []}
-            addons={storeData?.addons || []}
-            loading={dataLoading}
-            restaurant={restaurantInfo}
-          />
-        </TabsContent>
+          <TabsContent value="overview">
+            <StoreOverview 
+              restaurant={storeData?.restaurant} 
+              loading={dataLoading}
+              onRefresh={refetch}
+            />
+          </TabsContent>
 
-        <TabsContent value="taxes">
-          <StoreTaxData 
-            taxes={storeData?.taxes || []}
-            loading={dataLoading}
-          />
-        </TabsContent>
+          <TabsContent value="menu">
+            <StoreMenuData 
+              categories={storeData?.categories || []}
+              items={storeData?.items || []}
+              variations={storeData?.variations || []}
+              addons={storeData?.addons || []}
+              loading={dataLoading}
+              restaurant={restaurantInfo}
+            />
+          </TabsContent>
 
-        <TabsContent value="discounts">
-          <StoreDiscountData 
-            discounts={storeData?.discounts || []}
-            loading={dataLoading}
-          />
-        </TabsContent>
+          <TabsContent value="taxes">
+            <StoreTaxData 
+              taxes={storeData?.taxes || []}
+              loading={dataLoading}
+            />
+          </TabsContent>
 
-        <TabsContent value="sync">
-          <StoreSyncDashboard 
-            outletId={outletId}
-            syncStatus={syncStatus}
-            onSync={handleSync}
-            loading={syncLoading}
-          />
-        </TabsContent>
+          <TabsContent value="discounts">
+            <StoreDiscountData 
+              discounts={storeData?.discounts || []}
+              loading={dataLoading}
+            />
+          </TabsContent>
 
-        <TabsContent value="settings">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
-                Petpooja API Configuration
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="restaurantId">Restaurant ID</Label>
-                  <Input
-                    id="restaurantId"
-                    value={petpoojaConfig.restaurantId}
-                    onChange={(e) => setPetpoojaConfig(prev => ({ ...prev, restaurantId: e.target.value }))}
-                    placeholder="Enter Petpooja Restaurant ID"
-                  />
+          <TabsContent value="sync">
+            <StoreSyncDashboard 
+              outletId={outletId}
+              syncStatus={syncStatus}
+              onSync={handleSync}
+              loading={syncLoading}
+            />
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Petpooja API Configuration
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="restaurantId">Restaurant ID</Label>
+                    <Input
+                      id="restaurantId"
+                      value={petpoojaConfig.restaurantId}
+                      onChange={(e) => setPetpoojaConfig(prev => ({ ...prev, restaurantId: e.target.value }))}
+                      placeholder="Enter Petpooja Restaurant ID"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="appKey">App Key</Label>
+                    <Input
+                      id="appKey"
+                      value={petpoojaConfig.appKey}
+                      onChange={(e) => setPetpoojaConfig(prev => ({ ...prev, appKey: e.target.value }))}
+                      placeholder="Enter App Key"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="appSecret">App Secret</Label>
+                    <Input
+                      id="appSecret"
+                      type="password"
+                      value={petpoojaConfig.appSecret}
+                      onChange={(e) => setPetpoojaConfig(prev => ({ ...prev, appSecret: e.target.value }))}
+                      placeholder="Enter App Secret"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="accessToken">Access Token</Label>
+                    <Input
+                      id="accessToken"
+                      type="password"
+                      value={petpoojaConfig.accessToken}
+                      onChange={(e) => setPetpoojaConfig(prev => ({ ...prev, accessToken: e.target.value }))}
+                      placeholder="Enter Access Token"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label htmlFor="appKey">App Key</Label>
-                  <Input
-                    id="appKey"
-                    value={petpoojaConfig.appKey}
-                    onChange={(e) => setPetpoojaConfig(prev => ({ ...prev, appKey: e.target.value }))}
-                    placeholder="Enter App Key"
-                  />
+                
+                <div className="flex gap-2">
+                  <Button onClick={handleSaveConfig} disabled={configLoading}>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Configuration
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => handleSync('all')} 
+                    disabled={syncLoading || !hasValidConfig}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Test & Sync All Data
+                  </Button>
                 </div>
-                <div>
-                  <Label htmlFor="appSecret">App Secret</Label>
-                  <Input
-                    id="appSecret"
-                    type="password"
-                    value={petpoojaConfig.appSecret}
-                    onChange={(e) => setPetpoojaConfig(prev => ({ ...prev, appSecret: e.target.value }))}
-                    placeholder="Enter App Secret"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="accessToken">Access Token</Label>
-                  <Input
-                    id="accessToken"
-                    type="password"
-                    value={petpoojaConfig.accessToken}
-                    onChange={(e) => setPetpoojaConfig(prev => ({ ...prev, accessToken: e.target.value }))}
-                    placeholder="Enter Access Token"
-                  />
-                </div>
-              </div>
-              
-              <div className="flex gap-2">
-                <Button onClick={handleSaveConfig} disabled={configLoading}>
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Configuration
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => handleSync('all')} 
-                  disabled={syncLoading || !hasValidConfig}
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Test & Sync All Data
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   );
 };

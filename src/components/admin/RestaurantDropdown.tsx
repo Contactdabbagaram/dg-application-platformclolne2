@@ -7,6 +7,8 @@ interface RestaurantDropdownProps {
   value: string | null;
   onChange: (restaurantId: string) => void;
   disabled?: boolean;
+  label?: string;
+  placeholder?: string;
 }
 
 interface RestaurantSummary {
@@ -14,7 +16,13 @@ interface RestaurantSummary {
   name: string;
 }
 
-const RestaurantDropdown = ({ value, onChange, disabled }: RestaurantDropdownProps) => {
+const RestaurantDropdown = ({ 
+  value, 
+  onChange, 
+  disabled, 
+  label = "Map to Restaurant",
+  placeholder = "Select a restaurant"
+}: RestaurantDropdownProps) => {
   const [restaurants, setRestaurants] = useState<RestaurantSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -34,14 +42,14 @@ const RestaurantDropdown = ({ value, onChange, disabled }: RestaurantDropdownPro
 
   return (
     <div>
-      <label className="block text-sm font-medium mb-1">Map to Restaurant</label>
+      <label className="block text-sm font-medium mb-1">{label}</label>
       <Select
         value={value ?? undefined}
         onValueChange={onChange}
         disabled={disabled || loading}
       >
         <SelectTrigger>
-          <SelectValue placeholder={loading ? "Loading..." : "Select a restaurant"} />
+          <SelectValue placeholder={loading ? "Loading..." : placeholder} />
         </SelectTrigger>
         <SelectContent>
           {restaurants.map((r) => (
