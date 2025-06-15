@@ -184,13 +184,12 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
 
       console.log('Sending update data to database:', updateData);
 
-      // Use update without .single() to avoid the JSON object error
+      // Use update with select() which returns an array, avoiding the 'limit' error
       const { data: updatedData, error } = await supabase
         .from('outlets')
         .update(updateData)
         .eq('id', outletData.id)
-        .select()
-        .limit(1);
+        .select();
 
       if (error) {
         console.error('Database error during save:', error);

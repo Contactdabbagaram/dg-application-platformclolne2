@@ -135,10 +135,13 @@ export const updateOutletServiceArea = async (
     .from('outlets')
     .update(updateData)
     .eq('id', outletId)
-    .select()
-    .single();
+    .select();
 
-  return { data, error };
+  if (error) {
+    return { data: null, error };
+  }
+
+  return { data: data?.[0] || null, error };
 };
 
 /**
