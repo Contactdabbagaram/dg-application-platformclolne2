@@ -61,7 +61,11 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
     service_area_type: 'radius' as 'radius' | 'geofence',
     geofence_coordinates: [] as GeofencePoint[],
     max_delivery_distance_km: 10,
-    estimated_delivery_time_minutes: 30
+    estimated_delivery_time_minutes: 30,
+    delivery_fee_type: 'flat' as 'flat' | 'tiered',
+    base_delivery_distance_km: 0,
+    base_delivery_fee: 0,
+    per_km_delivery_fee: 0,
   });
 
   // Load outlet data
@@ -108,7 +112,11 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
           service_area_type: (data.service_area_type as 'radius' | 'geofence') || 'radius',
           geofence_coordinates: (data.geofence_coordinates as unknown as GeofencePoint[]) || [],
           max_delivery_distance_km: data.max_delivery_distance_km || 10,
-          estimated_delivery_time_minutes: data.estimated_delivery_time_minutes || 30
+          estimated_delivery_time_minutes: data.estimated_delivery_time_minutes || 30,
+          delivery_fee_type: (data.delivery_fee_type as 'flat' | 'tiered') || 'flat',
+          base_delivery_distance_km: data.base_delivery_distance_km || 0,
+          base_delivery_fee: data.base_delivery_fee || 0,
+          per_km_delivery_fee: data.per_km_delivery_fee || 0,
         });
 
         // Load restaurant data if available
@@ -179,7 +187,11 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
         is_active: editableFields.is_active,
         latitude: Number(editableFields.latitude),
         longitude: Number(editableFields.longitude),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        delivery_fee_type: editableFields.delivery_fee_type,
+        base_delivery_distance_km: Number(editableFields.base_delivery_distance_km),
+        base_delivery_fee: Number(editableFields.base_delivery_fee),
+        per_km_delivery_fee: Number(editableFields.per_km_delivery_fee),
       };
 
       console.log('Sending update data to database:', updateData);
@@ -264,7 +276,7 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
     { id: 'basic', title: 'Basic Details', icon: Settings },
     { id: 'address', title: 'Store Address', icon: MapPin },
     { id: 'service-area', title: 'Service Area & Geofencing', icon: Shield },
-    { id: 'ordering', title: 'Ordering', icon: Package },
+    { id: 'ordering', title: 'Order Value & Delivery Fees', icon: Package },
     { id: 'payments', title: 'Payments', icon: CreditCard },
     { id: 'menu-automation', title: 'Menu Automation', icon: RefreshCw },
   ];
@@ -544,27 +556,76 @@ const OutletSettings = ({ outletName, onBack }: OutletSettingsProps) => {
                     <div className="space-y-6">
                       {/* Order Value Limits */}
                       <div>
-                        <h4 className="text-lg font-medium mb-4">Order Value Limits</h4>
+                        <h4 className="text-lg font-medium mb-4">Order Value & Delivery Fees</h4>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label htmlFor="min-order">Minimum Order Value (₹)</Label>
-                            <Input 
-                              id="min-order" 
-                              type="number" 
+                            <Input
+                              id="min-order"
+                              type="number"
                               value={editableFields.min_order_amount}
                               onChange={(e) => handleFieldChange('min_order_amount', parseFloat(e.target.value) || 0)}
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="delivery-fee-ordering">Delivery Fee (₹)</Label>
-                            <Input 
-                              id="delivery-fee-ordering" 
-                              type="number" 
+                            <Label htmlFor="delivery_fee_type">Delivery Fee Type</Label>
+                            <Select
+                              value={editableFields.delivery_fee_type}
+                              onValueChange={(value: 'flat' | 'tiered') => handleFieldChange('delivery_fee_type', value)}
+                            >
+                              <SelectTrigger id="delivery_fee_type">
+                                <SelectValue placeholder="Select fee type" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="flat">Flat</SelectItem>
+                                <SelectItem value="tiered">Tiered</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        {editableFields.delivery_fee_type === 'flat' ? (
+                          <div className="mt-4 space-y-2">
+                            <Label htmlFor="delivery_fee">Delivery Fee (Flat) (₹)</Label>
+                            <Input
+                              id="delivery_fee"
+                              type="number"
                               value={editableFields.delivery_fee}
                               onChange={(e) => handleFieldChange('delivery_fee', parseFloat(e.target.value) || 0)}
                             />
                           </div>
-                        </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="base_delivery_distance_km">Base Distance (km)</Label>
+                              <Input
+                                id="base_delivery_distance_km"
+                                type="number"
+                                value={editableFields.base_delivery_distance_km}
+                                onChange={(e) => handleFieldChange('base_delivery_distance_km', parseFloat(e.target.value) || 0)}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="base_delivery_fee">Base Fee (₹)</Label>
+                              <Input
+                                id="base_delivery_fee"
+                                type="number"
+                                value={editableFields.base_delivery_fee}
+                                onChange={(e) => handleFieldChange('base_delivery_fee', parseFloat(e.target.value) || 0)}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="per_km_delivery_fee">Fee Per km (₹)</Label>
+                              <Input
+                                id="per_km_delivery_fee"
+                                type="number"
+                                value={editableFields.per_km_delivery_fee}
+                                onChange={(e) => handleFieldChange('per_km_delivery_fee', parseFloat(e.target.value) || 0)}
+                              />
+                            </div>
+                          </div>
+                        )}
+
                         <div className="mt-4">
                           <Button onClick={saveBasicSettings} disabled={saving}>
                             {saving ? 'Saving...' : 'Save Order Settings'}
