@@ -29,6 +29,7 @@ export const OutletProvider = ({
   const [selectedRestaurantId, setSelectedRestaurantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [restaurantData, setRestaurantData] = useState<any>(null);
   const { toast } = useToast();
 
   // Fetch outlet data and handle restaurant linking
@@ -36,6 +37,7 @@ export const OutletProvider = ({
     if (!outletId) {
       setOutletData(null);
       setSelectedRestaurantId(null);
+      setRestaurantData(null);
       setLoading(false);
       return;
     }
@@ -59,6 +61,13 @@ export const OutletProvider = ({
       console.log('Outlet data:', outlet);
 
       if (outlet) {
+        setOutletData(outlet);
+        
+        // Set the selected restaurant ID immediately
+        const restaurantId = outlet.restaurant_id || null;
+        console.log('Setting selectedRestaurantId to:', restaurantId);
+        setSelectedRestaurantId(restaurantId);
+
         // If outlet has a restaurant_id, fetch the restaurant data separately
         if (outlet.restaurant_id) {
           console.log('Fetching restaurant data for ID:', outlet.restaurant_id);
@@ -71,16 +80,15 @@ export const OutletProvider = ({
 
           if (restaurantError) {
             console.error('Error fetching restaurant:', restaurantError);
-            // Don't throw here, just log the error and continue
             toast({
               title: 'Warning',
               description: 'Outlet is linked to a restaurant that no longer exists.',
               variant: 'destructive',
             });
+            setRestaurantData(null);
           } else if (restaurant) {
             console.log('Restaurant data:', restaurant);
-            // Attach restaurant data to outlet
-            outlet.restaurants = restaurant;
+            setRestaurantData(restaurant);
           } else {
             console.warn('Restaurant not found for ID:', outlet.restaurant_id);
             // Clean up orphaned relationship
@@ -89,23 +97,24 @@ export const OutletProvider = ({
               .update({ restaurant_id: null })
               .eq('id', outletId);
             
-            outlet.restaurant_id = null;
+            setSelectedRestaurantId(null);
+            setRestaurantData(null);
+            // Update local outlet data
+            setOutletData({ ...outlet, restaurant_id: null });
+            
             toast({
               title: 'Cleaned up',
               description: 'Removed invalid restaurant link.',
             });
           }
+        } else {
+          setRestaurantData(null);
         }
-
-        setOutletData(outlet);
-        // Set the selected restaurant ID immediately based on the outlet data
-        const restaurantId = outlet.restaurant_id || null;
-        console.log('Setting selectedRestaurantId to:', restaurantId);
-        setSelectedRestaurantId(restaurantId);
       } else {
         console.log('No outlet found for ID:', outletId);
         setOutletData(null);
         setSelectedRestaurantId(null);
+        setRestaurantData(null);
       }
     } catch (error) {
       console.error("Error fetching outlet data:", error);
@@ -116,6 +125,7 @@ export const OutletProvider = ({
       });
       setOutletData(null);
       setSelectedRestaurantId(null);
+      setRestaurantData(null);
     } finally {
       setLoading(false);
     }
@@ -134,8 +144,8 @@ export const OutletProvider = ({
     refetch: refetchStoreData,
   } = useStoreData(selectedRestaurantId || '');
 
-  // Get restaurant object from storeData or outletData
-  const restaurant = storeData?.restaurant || outletData?.restaurants || null;
+  // Get restaurant object from storeData or restaurantData
+  const restaurant = storeData?.restaurant || restaurantData || null;
 
   const handleRestaurantChange = async (newRestaurantId: string) => {
     if (!outletId) return;
