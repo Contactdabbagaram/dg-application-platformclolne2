@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,14 +14,17 @@ import FrontendSettings from '@/components/admin/FrontendSettings';
 import StoreSettings from '@/components/admin/StoreSettings';
 import OutletMenuManagement from '@/components/admin/OutletMenuManagement';
 import { OutletProvider } from '@/contexts/OutletContext';
+import { Button } from '@/components/ui/button';
 
 const Admin = () => {
   const [activeView, setActiveView] = useState('home');
-  const [selectedOutlet, setSelectedOutlet] = useState('Airoli');
+  const [selectedOutletId, setSelectedOutletId] = useState<string | null>(null);
+  const [selectedOutletName, setSelectedOutletName] = useState<string>('');
   const [activeOutletSection, setActiveOutletSection] = useState('dashboard');
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const [outlets, setOutlets] = useState<any[]>([]);
 
   // Restaurant ID and Outlet ID mappings - this is now just for initial state
   const outletIdMapping = {
@@ -54,13 +56,26 @@ const Admin = () => {
           navigate('/admin/login');
         } else if (session) {
           setUser(session.user);
-          setLoading(false);
         }
       }
     );
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  useEffect(() => {
+    const fetchOutlets = async () => {
+      const { data, error } = await supabase.from('outlets').select('id, name, city').order('name');
+      if (error) {
+        console.error("Error fetching outlets:", error);
+      } else if (data) {
+        setOutlets(data);
+      }
+    };
+    if (user) {
+      fetchOutlets();
+    }
+  }, [user]);
 
   if (loading) {
     return (
@@ -82,8 +97,9 @@ const Admin = () => {
     setActiveView('home');
   };
 
-  const handleOutletSelect = (outletName: string) => {
-    setSelectedOutlet(outletName);
+  const handleOutletSelect = (outlet: { id: string; name: string }) => {
+    setSelectedOutletId(outlet.id);
+    setSelectedOutletName(outlet.name);
     setActiveOutletSection('dashboard');
     setActiveView('outlet');
   };
@@ -92,39 +108,36 @@ const Admin = () => {
     setActiveOutletSection(section);
   };
 
-  const getOutletIdForOutlet = (outletName: string) => {
-    return outletIdMapping[outletName] || '00000000-0000-0000-0000-000000000101';
-  };
-
   const renderOutletContent = () => {
-    const currentOutletId = getOutletIdForOutlet(selectedOutlet);
+    if (!selectedOutletId) {
+        return <p>Something went wrong, outlet not selected.</p>;
+    }
 
     switch (activeOutletSection) {
       case 'dashboard':
-        return <OutletDashboard outletName={selectedOutlet} outletId={currentOutletId} />;
+        return <OutletDashboard outletName={selectedOutletName} outletId={selectedOutletId} />;
       case 'menu':
         return <OutletMenuManagement 
-          outletName={selectedOutlet} 
-          outletId={currentOutletId}
+          outletName={selectedOutletName} 
+          outletId={selectedOutletId}
         />;
       case 'orders':
-        return <OutletOrders outletName={selectedOutlet} />;
+        return <OutletOrders outletName={selectedOutletName} />;
       case 'reviews':
-        return <OutletReviews outletName={selectedOutlet} />;
+        return <OutletReviews outletName={selectedOutletName} />;
       case 'settings':
-        return <OutletSettings outletName={selectedOutlet} />;
+        return <OutletSettings outletName={selectedOutletName} />;
       default:
-        return <OutletDashboard outletName={selectedOutlet} outletId={currentOutletId} />;
+        return <OutletDashboard outletName={selectedOutletName} outletId={selectedOutletId} />;
     }
   };
 
   const renderContent = () => {
-    const currentOutletId = getOutletIdForOutlet(selectedOutlet);
-
     switch (activeView) {
       case 'home':
         return (
           <AdminHome 
+            outlets={outlets}
             onNavigateToBusinessSettings={() => setActiveView('business-settings')}
             onNavigateToOutletManagement={() => setActiveView('business-settings')}
             onOutletSelect={handleOutletSelect}
@@ -149,16 +162,30 @@ const Admin = () => {
       case 'frontend-settings':
         return <FrontendSettings />;
       case 'store-settings':
+        // This view is not directly reachable from a button, but if it were, an outlet must be selected.
+        if (!selectedOutletId) {
+          return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+              <div className="text-center">
+                <p className="text-gray-600">Please select an outlet from the home page to manage store settings.</p>
+                <Button onClick={() => { setActiveView('home'); }} className="mt-4">
+                  Back to Home
+                </Button>
+              </div>
+            </div>
+          );
+        }
         return (
-          <OutletProvider outletId={currentOutletId}>
-            <StoreSettings outletId={currentOutletId} />
+          <OutletProvider outletId={selectedOutletId}>
+            <StoreSettings outletId={selectedOutletId} />
           </OutletProvider>
         );
       case 'outlet':
+        if (!selectedOutletId) return null;
         return (
-          <OutletProvider outletId={currentOutletId}>
+          <OutletProvider outletId={selectedOutletId}>
             <OutletSettingsLayout
-              outletName={selectedOutlet}
+              outletName={selectedOutletName}
               activeSection={activeOutletSection}
               onSectionChange={handleOutletSectionChange}
               onBack={() => setActiveView('home')}
@@ -170,6 +197,7 @@ const Admin = () => {
       default:
         return (
           <AdminHome 
+            outlets={outlets}
             onNavigateToBusinessSettings={() => setActiveView('business-settings')}
             onNavigateToOutletManagement={() => setActiveView('business-settings')}
             onOutletSelect={handleOutletSelect}

@@ -1,38 +1,24 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { ExternalLink, Store, Settings } from 'lucide-react';
 
 interface AdminHomeProps {
+  outlets: { id: string; name: string; city: string | null }[];
   onNavigateToBusinessSettings: () => void;
   onNavigateToOutletManagement: () => void;
-  onOutletSelect: (outletName: string) => void;
+  onOutletSelect: (outlet: { id: string; name: string }) => void;
   onNavigateToFrontendSettings: () => void;
   onNavigateToStoreSettings: () => void;
 }
 
 const AdminHome = ({ 
+  outlets,
   onNavigateToBusinessSettings, 
   onNavigateToOutletManagement, 
   onOutletSelect, 
   onNavigateToFrontendSettings,
   onNavigateToStoreSettings 
 }: AdminHomeProps) => {
-  const outlets = [
-    { name: 'Airoli', city: 'Navi Mumbai', status: 'active' },
-    { name: 'Andheri (W)', city: 'Mumbai', status: 'active' },
-    { name: 'Bandra', city: 'Mumbai', status: 'active' },
-    { name: 'Bhandup', city: 'Mumbai', status: 'active' },
-    { name: 'Brahmand', city: 'Thane', status: 'active' },
-    { name: 'Chakala', city: 'Mumbai', status: 'active' },
-    { name: 'Charai', city: 'Thane', status: 'active' },
-    { name: 'Chembur', city: 'Mumbai', status: 'active' },
-    { name: 'Dadar east', city: 'Mumbai', status: 'active' },
-    { name: 'Dahisar West', city: 'Mumbai', status: 'active' },
-    { name: 'Dombivali', city: 'Dombivali', status: 'active' },
-    { name: 'Ghatkopar', city: 'Mumbai', status: 'active' },
-    { name: 'Goregaon- E', city: 'Mumbai', status: 'active' },
-  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -129,19 +115,19 @@ const AdminHome = ({
               <h2 className="text-lg font-semibold">Store Outlets</h2>
             </div>
             <div className="divide-y">
-              {outlets.map((outlet, index) => (
-                <div key={index} className="flex items-center justify-between px-6 py-4 hover:bg-gray-50">
+              {outlets.map((outlet) => (
+                <div key={outlet.id} className="flex items-center justify-between px-6 py-4 hover:bg-gray-50">
                   <div className="flex items-center gap-3">
                     <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                     <span className="font-medium">{outlet.name}</span>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="text-gray-600">{outlet.city}</span>
+                    <span className="text-gray-600">{outlet.city || 'N/A'}</span>
                     <Button 
                       variant="ghost" 
                       size="sm" 
                       className="text-blue-600"
-                      onClick={() => onOutletSelect(outlet.name)}
+                      onClick={() => onOutletSelect({ id: outlet.id, name: outlet.name })}
                     >
                       View Store ▶
                     </Button>
