@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,7 +17,6 @@ interface Restaurant {
   city?: string;
   state?: string;
   minimum_order_amount?: number;
-  minimum_delivery_time?: string;
   minimum_prep_time?: number;
   delivery_charge?: number;
 }
@@ -141,9 +139,6 @@ const StoreOverview = ({ restaurant, loading, onRefresh }: StoreOverviewProps) =
             </div>
             <div>
               <span className="font-medium">Min Prep Time:</span> {restaurant.minimum_prep_time ? `${restaurant.minimum_prep_time} mins` : 'Not set'}
-            </div>
-            <div>
-              <span className="font-medium">Delivery Time:</span> {restaurant.minimum_delivery_time || 'Not set'}
             </div>
             <div>
               <span className="font-medium">Delivery Charge:</span> {restaurant.currency_symbol || ''}{restaurant.delivery_charge || 'Not set'}

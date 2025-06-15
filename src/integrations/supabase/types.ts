@@ -1761,7 +1761,6 @@ export type Database = {
           landmark: string | null
           latitude: number | null
           longitude: number | null
-          minimum_delivery_time: string | null
           minimum_order_amount: number | null
           minimum_prep_time: number | null
           name: string
@@ -1793,7 +1792,6 @@ export type Database = {
           landmark?: string | null
           latitude?: number | null
           longitude?: number | null
-          minimum_delivery_time?: string | null
           minimum_order_amount?: number | null
           minimum_prep_time?: number | null
           name: string
@@ -1825,7 +1823,6 @@ export type Database = {
           landmark?: string | null
           latitude?: number | null
           longitude?: number | null
-          minimum_delivery_time?: string | null
           minimum_order_amount?: number | null
           minimum_prep_time?: number | null
           name?: string
