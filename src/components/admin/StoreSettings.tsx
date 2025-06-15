@@ -18,9 +18,24 @@ import StoreSyncDashboard from './store/StoreSyncDashboard';
 import { Settings, RefreshCw, Save, CheckCircle, AlertCircle } from 'lucide-react';
 import RestaurantDropdown from './RestaurantDropdown';
 import { RestaurantChangeConfirmationDialog } from './RestaurantChangeConfirmationDialog';
+import { Switch } from '@/components/ui/switch';
 
 interface StoreSettingsProps {
   outletId: string;
+}
+
+interface EditableOutletData {
+  store_code: string;
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  delivery_radius_km: number | string;
+  delivery_fee: number | string;
+  min_order_amount: number | string;
+  is_active: boolean;
+  max_delivery_distance_km: number | string;
+  estimated_delivery_time_minutes: number | string;
 }
 
 const StoreSettings = ({ outletId }: StoreSettingsProps) => {
@@ -49,12 +64,36 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
     refetchOutletData,
   } = useOutlet();
 
-  const [storeCode, setStoreCode] = useState('');
+  const [editableData, setEditableData] = useState<EditableOutletData>({
+    store_code: '',
+    name: '',
+    address: '',
+    phone: '',
+    email: '',
+    delivery_radius_km: '',
+    delivery_fee: '',
+    min_order_amount: '',
+    is_active: true,
+    max_delivery_distance_km: '',
+    estimated_delivery_time_minutes: '',
+  });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (outletData) {
-      setStoreCode(outletData.store_code || '');
+      setEditableData({
+        store_code: outletData.store_code || '',
+        name: outletData.name || '',
+        address: outletData.address || '',
+        phone: outletData.phone || '',
+        email: outletData.email || '',
+        delivery_radius_km: outletData.delivery_radius_km || '',
+        delivery_fee: outletData.delivery_fee || '',
+        min_order_amount: outletData.min_order_amount || '',
+        is_active: outletData.is_active,
+        max_delivery_distance_km: outletData.max_delivery_distance_km || '',
+        estimated_delivery_time_minutes: outletData.estimated_delivery_time_minutes || '',
+      });
     }
   }, [outletData]);
 
@@ -82,6 +121,15 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
     fetchOutletConfig();
   }, [outletId]);
 
+  const handleDataChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEditableData(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const handleSwitchChange = (checked: boolean) => {
+    setEditableData(prev => ({ ...prev, is_active: checked }));
+  };
+
   const handleSaveConfig = async () => {
     try {
       await saveStoreConfig(outletId, petpoojaConfig);
@@ -98,34 +146,48 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
     }
   };
 
-  const handleUpdateStoreCode = async () => {
-    if (!outletData?.id || !storeCode.trim()) return;
+  const handleSaveOutletDetails = async () => {
+    if (!outletData?.id) return;
     
     setSaving(true);
     try {
+      const updateData = {
+        ...editableData,
+        delivery_radius_km: editableData.delivery_radius_km ? Number(editableData.delivery_radius_km) : null,
+        delivery_fee: editableData.delivery_fee ? Number(editableData.delivery_fee) : null,
+        min_order_amount: editableData.min_order_amount ? Number(editableData.min_order_amount) : null,
+        max_delivery_distance_km: editableData.max_delivery_distance_km ? Number(editableData.max_delivery_distance_km) : null,
+        estimated_delivery_time_minutes: editableData.estimated_delivery_time_minutes ? Number(editableData.estimated_delivery_time_minutes) : null,
+        updated_at: new Date().toISOString(),
+      };
+      
       const { error } = await supabase
         .from('outlets')
-        .update({ store_code: storeCode, updated_at: new Date().toISOString() })
+        .update(updateData)
         .eq('id', outletData.id);
 
-      if (error) throw error;
+      if (error) {
+          console.error("Error updating outlet:", error);
+          throw error;
+      }
 
       toast({
-        title: 'Store Code Updated',
-        description: 'Store code has been updated successfully.',
+        title: 'Outlet Details Updated',
+        description: 'The outlet details have been saved successfully.',
       });
       
       await refetchOutletData();
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to update store code. Please try again.',
+        description: error instanceof Error ? error.message : 'Failed to update outlet details.',
         variant: 'destructive',
       });
     } finally {
       setSaving(false);
     }
   };
+
 
   const handleSync = async (syncType: 'menu' | 'taxes' | 'discounts' | 'all') => {
     try {
@@ -171,53 +233,57 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="outlet-store-code">Store Code</Label>
-              <div className="flex gap-2">
-                <Input 
-                  id="outlet-store-code" 
-                  value={storeCode} 
-                  onChange={e => setStoreCode(e.target.value)} 
-                />
-                <Button 
-                  onClick={handleUpdateStoreCode} 
-                  disabled={saving || !storeCode.trim() || storeCode === outletData.store_code}
-                  size="sm"
-                >
-                  {saving ? 'Saving...' : 'Update'}
-                </Button>
-              </div>
+              <Label htmlFor="store_code">Store Code</Label>
+              <Input
+                id="store_code"
+                name="store_code"
+                value={editableData.store_code}
+                onChange={handleDataChange}
+              />
             </div>
             <div>
-              <Label htmlFor="outlet-name">Name</Label>
-              <Input id="outlet-name" value={outletData.name || ''} readOnly />
+              <Label htmlFor="name">Name</Label>
+              <Input id="name" name="name" value={editableData.name} onChange={handleDataChange} />
+            </div>
+            <div>
+              <Label htmlFor="address">Address</Label>
+              <Input id="address" name="address" value={editableData.address} onChange={handleDataChange} />
+            </div>
+            <div>
+              <Label htmlFor="phone">Phone</Label>
+              <Input id="phone" name="phone" value={editableData.phone} onChange={handleDataChange} />
+            </div>
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input id="email" name="email" type="email" value={editableData.email} onChange={handleDataChange} />
+            </div>
+            <div>
+              <Label htmlFor="delivery_radius_km">Delivery Radius (km)</Label>
+              <Input id="delivery_radius_km" name="delivery_radius_km" type="number" value={editableData.delivery_radius_km} onChange={handleDataChange} />
+            </div>
+            <div>
+              <Label htmlFor="delivery_fee">Delivery Fee</Label>
+              <Input id="delivery_fee" name="delivery_fee" type="number" value={editableData.delivery_fee} onChange={handleDataChange} />
+            </div>
+            <div>
+              <Label htmlFor="min_order_amount">Minimum Order</Label>
+              <Input id="min_order_amount" name="min_order_amount" type="number" value={editableData.min_order_amount} onChange={handleDataChange} />
+            </div>
+             <div>
+              <Label htmlFor="max_delivery_distance_km">Max Delivery Distance (km)</Label>
+              <Input id="max_delivery_distance_km" name="max_delivery_distance_km" type="number" value={editableData.max_delivery_distance_km} onChange={handleDataChange} />
+            </div>
+            <div>
+              <Label htmlFor="estimated_delivery_time_minutes">Est. Delivery Time (min)</Label>
+              <Input id="estimated_delivery_time_minutes" name="estimated_delivery_time_minutes" type="number" value={editableData.estimated_delivery_time_minutes} onChange={handleDataChange} />
+            </div>
+            <div className="flex flex-col space-y-2 pt-2">
+              <Label htmlFor="is_active">Active</Label>
+              <Switch id="is_active" checked={editableData.is_active} onCheckedChange={handleSwitchChange} />
             </div>
             <div>
               <Label htmlFor="outlet-id">Outlet ID</Label>
               <Input id="outlet-id" value={outletData.id || ''} readOnly />
-            </div>
-            <div>
-              <Label htmlFor="outlet-address">Address</Label>
-              <Input id="outlet-address" value={outletData.address || ''} readOnly />
-            </div>
-            <div>
-              <Label htmlFor="outlet-phone">Phone</Label>
-              <Input id="outlet-phone" value={outletData.phone || ''} readOnly />
-            </div>
-            <div>
-              <Label htmlFor="outlet-email">Email</Label>
-              <Input id="outlet-email" value={outletData.email || ''} readOnly />
-            </div>
-            <div>
-              <Label htmlFor="delivery-radius">Delivery Radius (km)</Label>
-              <Input id="delivery-radius" value={outletData.delivery_radius_km || ''} readOnly />
-            </div>
-            <div>
-              <Label htmlFor="delivery-fee">Delivery Fee</Label>
-              <Input id="delivery-fee" value={outletData.delivery_fee || ''} readOnly />
-            </div>
-            <div>
-              <Label htmlFor="min-order">Minimum Order</Label>
-              <Input id="min-order" value={outletData.min_order_amount || ''} readOnly />
             </div>
             <div>
               <Label htmlFor="service-area-type">Service Area Type</Label>
@@ -232,21 +298,15 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
               <Input id="longitude" value={outletData.longitude || ''} readOnly />
             </div>
             <div>
-              <Label htmlFor="is-active">Active?</Label>
-              <Input id="is-active" value={outletData.is_active ? 'Yes' : 'No'} readOnly />
-            </div>
-            <div>
               <Label htmlFor="restaurant-id">Restaurant ID</Label>
               <Input id="restaurant-id" value={outletData.restaurant_id || ''} readOnly />
             </div>
-            <div>
-              <Label htmlFor="max-delivery-distance">Max Delivery Distance (km)</Label>
-              <Input id="max-delivery-distance" value={outletData.max_delivery_distance_km || ''} readOnly />
-            </div>
-            <div>
-              <Label htmlFor="estimated-delivery-time">Estimated Delivery Time (min)</Label>
-              <Input id="estimated-delivery-time" value={outletData.estimated_delivery_time_minutes || ''} readOnly />
-            </div>
+          </div>
+          <div className="flex justify-end pt-4">
+            <Button onClick={handleSaveOutletDetails} disabled={saving}>
+              <Save className="h-4 w-4 mr-2" />
+              {saving ? 'Saving...' : 'Save Outlet Details'}
+            </Button>
           </div>
         </CardContent>
       </Card>
