@@ -35,6 +35,8 @@ export const OutletProvider = ({
   const {
     data: outletData,
     isLoading: loading,
+    isError,
+    error: outletQueryError,
     refetch: refetchOutletData,
   } = useQuery({
     queryKey: ['outletData', outletId],
@@ -70,17 +72,23 @@ export const OutletProvider = ({
 
       return outlet;
     },
-    onSuccess: (data) => {
-      // This is the source of truth for the linked restaurant ID
-      setSelectedRestaurantId(data?.restaurant_id || null);
-    },
-    onError: (error) => {
-      console.error("Error fetching outlet data:", error);
-      toast({ title: 'Error', description: 'Could not fetch outlet data.', variant: 'destructive' });
-      setSelectedRestaurantId(null);
-    },
     enabled: !!outletId,
   });
+
+  useEffect(() => {
+    if (outletData) {
+      // This is the source of truth for the linked restaurant ID
+      setSelectedRestaurantId(outletData.restaurant_id || null);
+    }
+  }, [outletData]);
+
+  useEffect(() => {
+    if (isError) {
+      console.error("Error fetching outlet data:", outletQueryError);
+      toast({ title: 'Error', description: 'Could not fetch outlet data.', variant: 'destructive' });
+      setSelectedRestaurantId(null);
+    }
+  }, [isError, outletQueryError, toast]);
 
   // Fetch store data based on selected restaurant
   const {
