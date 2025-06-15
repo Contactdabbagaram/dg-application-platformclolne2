@@ -1197,7 +1197,9 @@ export type Database = {
           petpooja_access_token: string | null
           petpooja_app_key: string | null
           petpooja_app_secret: string | null
+          petpooja_menu_api_url: string | null
           petpooja_restaurant_id: string | null
+          petpooja_save_order_api_url: string | null
           phone: string | null
           restaurant_id: string | null
           service_area_type: string
@@ -1226,7 +1228,9 @@ export type Database = {
           petpooja_access_token?: string | null
           petpooja_app_key?: string | null
           petpooja_app_secret?: string | null
+          petpooja_menu_api_url?: string | null
           petpooja_restaurant_id?: string | null
+          petpooja_save_order_api_url?: string | null
           phone?: string | null
           restaurant_id?: string | null
           service_area_type?: string
@@ -1255,7 +1259,9 @@ export type Database = {
           petpooja_access_token?: string | null
           petpooja_app_key?: string | null
           petpooja_app_secret?: string | null
+          petpooja_menu_api_url?: string | null
           petpooja_restaurant_id?: string | null
+          petpooja_save_order_api_url?: string | null
           phone?: string | null
           restaurant_id?: string | null
           service_area_type?: string

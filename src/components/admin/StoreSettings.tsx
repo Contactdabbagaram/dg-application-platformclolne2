@@ -41,6 +41,8 @@ interface EditableOutletData {
   base_delivery_distance_km: number | string;
   base_delivery_fee: number | string;
   per_km_delivery_fee: number | string;
+  petpooja_menu_api_url: string;
+  petpooja_save_order_api_url: string;
 }
 
 const StoreSettings = ({ outletId }: StoreSettingsProps) => {
@@ -48,7 +50,9 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
     restaurantId: '',
     appKey: '',
     appSecret: '',
-    accessToken: ''
+    accessToken: '',
+    petpooja_menu_api_url: '',
+    petpooja_save_order_api_url: ''
   });
 
   const { toast } = useToast();
@@ -85,6 +89,8 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
     base_delivery_distance_km: '',
     base_delivery_fee: '',
     per_km_delivery_fee: '',
+    petpooja_menu_api_url: '',
+    petpooja_save_order_api_url: '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -106,6 +112,8 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
         base_delivery_distance_km: outletData.base_delivery_distance_km || '',
         base_delivery_fee: outletData.base_delivery_fee || '',
         per_km_delivery_fee: outletData.per_km_delivery_fee || '',
+        petpooja_menu_api_url: outletData.petpooja_menu_api_url || '',
+        petpooja_save_order_api_url: outletData.petpooja_save_order_api_url || '',
       });
     }
   }, [outletData]);
@@ -117,7 +125,7 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
       
       const { data: outlet } = await supabase
         .from('outlets')
-        .select('petpooja_restaurant_id, petpooja_app_key, petpooja_app_secret, petpooja_access_token')
+        .select('petpooja_restaurant_id, petpooja_app_key, petpooja_app_secret, petpooja_access_token, petpooja_menu_api_url, petpooja_save_order_api_url')
         .eq('id', outletId)
         .maybeSingle();
 
@@ -126,7 +134,9 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
           restaurantId: outlet.petpooja_restaurant_id || '',
           appKey: outlet.petpooja_app_key || '',
           appSecret: outlet.petpooja_app_secret || '',
-          accessToken: outlet.petpooja_access_token || ''
+          accessToken: outlet.petpooja_access_token || '',
+          petpooja_menu_api_url: outlet.petpooja_menu_api_url || '',
+          petpooja_save_order_api_url: outlet.petpooja_save_order_api_url || ''
         });
       }
     };
@@ -348,6 +358,26 @@ const StoreSettings = ({ outletId }: StoreSettingsProps) => {
             <div>
               <Label htmlFor="restaurant-id">Restaurant ID</Label>
               <Input id="restaurant-id" value={outletData.restaurant_id || ''} readOnly />
+            </div>
+            <div>
+              <Label htmlFor="petpooja_menu_api_url">Petpooja Menu API URL</Label>
+              <Input
+                id="petpooja_menu_api_url"
+                name="petpooja_menu_api_url"
+                value={editableData.petpooja_menu_api_url}
+                onChange={handleDataChange}
+                placeholder="Enter custom menu API URL"
+              />
+            </div>
+            <div>
+              <Label htmlFor="petpooja_save_order_api_url">Petpooja Save Order API URL</Label>
+              <Input
+                id="petpooja_save_order_api_url"
+                name="petpooja_save_order_api_url"
+                value={editableData.petpooja_save_order_api_url}
+                onChange={handleDataChange}
+                placeholder="Enter custom save order API URL"
+              />
             </div>
           </div>
           <div className="flex justify-end pt-4">
